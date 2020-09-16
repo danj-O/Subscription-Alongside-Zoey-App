@@ -36,9 +36,9 @@ getAllAll()
 async function getAllAll(){
   // allCustomers = await getAllPages(1, `https://ts967672-container.zoeysite.com/api/rest/customers?`)
   // allProducts = await getAllPages(1, `https://ts967672-container.zoeysite.com/api/rest/products?`)
-  todaysOrders = await getTodaysOrders(50, `https://ts967672-container.zoeysite.com/api/rest/orders?`)
+  todaysOrders = await getTodaysOrders(`n`, `https://ts967672-container.zoeysite.com/api/rest/orders?`)
   // await console.log(allCustomers)
-  await console.log(todaysOrders)
+  // await console.log(todaysOrders)
   await console.log(Object.keys(todaysOrders).length)
 }
 
@@ -48,18 +48,17 @@ async function getDataWithAuth(url){
 }
 
 async function getAllPages(n, urlPartial) {
+  let prevPageData = {}
   const allData = {}
-  for (i=0; i <= n; i++){
+  for (i=1; ; i++){
     const urlCat = `${urlPartial}page=${i}`
     const data = await getDataWithAuth(urlCat)
-    // console.log("DAYYYTTAAAAAAAA",data)
+    if (JSON.stringify(data) === JSON.stringify(prevPageData)){
+      break
+    }
+    prevPageData = {}
     for (key in await data){
-      // if the key of the first obj on the pg is the same as something in alldata, it's probably a duplicate page
-      // for (i=0; i <= Object.keys(allData).length; i++){
-      //   if(key == Object.keys(allData)[i]){
-      //     await console.log("duplicate", key)
-      //   }
-      // }
+      prevPageData[key] = data[key]
       allData[key] = data[key]
     }
   }
