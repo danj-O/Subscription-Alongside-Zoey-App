@@ -18,18 +18,16 @@ app.get('/', function(req, res){
 app.listen(3000, function(){
   console.log("Server is running on port 3000")
 })
-// POST
-// https://ts967672-container.zoeysite.com/api/rest/checkout2/cart
-// GET
-// "https://ts967672-container.zoeysite.com/api/rest/products"
-// "https://ts967672-container.zoeysite.com/api/rest/stockitems"
-// "https://ts967672-container.zoeysite.com/api/rest/customers"
-
-// auth(url)
 
 let allCustomers = {};
 let allProducts = {};
 let todaysOrders = {};
+let date_ob = new Date();
+let year = date_ob.getFullYear();
+let month = ("0" + (date_ob.getMonth() + 1)).slice(-2);
+let date = ("0" + date_ob.getDate()).slice(-2);
+
+const fullDate = year + "-" + month + "-" + date
 
 getAllAll()
 
@@ -38,7 +36,7 @@ async function getAllAll(){
   // allProducts = await getAllPages(1, `https://ts967672-container.zoeysite.com/api/rest/products?`)
   todaysOrders = await getTodaysOrders(`n`, `https://ts967672-container.zoeysite.com/api/rest/orders?`)
   // await console.log(allCustomers)
-  // await console.log(todaysOrders)
+  await console.log(todaysOrders)
   await console.log(Object.keys(todaysOrders).length)
 }
 
@@ -68,17 +66,8 @@ async function getAllPages(n, urlPartial) {
 
 async function getTodaysOrders(n, urlPartial){
   // const allData = {}
-  const urlCat = `${urlPartial}filter[1][attribute]=created_at&filter[1][gte]=2020-07-23%2000:00:00&filter[2][attribute]=created_at&filter[2][lte]=2020-07-23%2023:59:59&`
-
+  const urlCat = `${urlPartial}filter[1][attribute]=created_at&filter[1][gte]=${fullDate}%2000:00:00&filter[2][attribute]=created_at&filter[2][lte]=${fullDate}%2023:59:59&`
   //returns all the pages for the orders
   const data = await getAllPages(n, urlCat)
-
-  // const data = await getDataWithAuth(urlCat)
-  // await console.log(data)
-  // for (key in data){
-  //   allData[key] = await data[key]
-  // }
-  // await console.log('GET ALL DATA COMPLETE')
-  // return await allData
   return await data
 }
