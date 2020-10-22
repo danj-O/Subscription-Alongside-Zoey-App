@@ -10,10 +10,6 @@
     "dotenv": "^8.2.0",
     "ejs": "^3.1.5",
     "express": "^4.17.1",
-    "magento-api-rest": "^2.0.3",
-    "magento2-rest-client": "0.0.2",
-    "node-fetch": "^2.6.0",
-    "node-magento2": "^1.1.4",
     "oauth-1.0a": "^2.2.6",
     "uuid": "^8.3.0"
   },
