@@ -1,5 +1,7 @@
 require('dotenv').config();
 const authorize = require('./auth')
+const Oauth1Helper = require('./auth2')
+const axios = require('axios')
 var cors = require('cors')
 var express = require('express');
 const bodyParser = require("body-parser");
@@ -30,20 +32,48 @@ let date = ("0" + date_ob.getDate()).slice(-2);
 const fullDate = year + "-" + month + "-" + date
 
 getAllAll()
+// getDataWithAuth('http://2ieb7j62xark0rjf.mojostratus.io/rest/default/V1/products?searchCriteria[filter_groups][0][filters][0][field]=name')
+// getDataWithAuth2('https://2ieb7j62xark0rjf.mojostratus.io/rest/V1/customers/1')
+// getDataWithAuth('')
+
+
+
 
 async function getAllAll(){
-  // allCustomers = await getAllPages(1, `https://ts967672-container.zoeysite.com/api/rest/customers?`)
-  // allProducts = await getAllPages(1, `https://ts967672-container.zoeysite.com/api/rest/products?`)
-  todaysOrders = await getTodaysOrders(`n`, `https://ts967672-container.zoeysite.com/api/rest/orders?`)
-  // await console.log(allCustomers)
-  await console.log(todaysOrders)
-  await console.log(Object.keys(todaysOrders).length)
+  // allCustomers = await getDataWithAuth2('https://2ieb7j62xark0rjf.mojostratus.io/rest/V1/customers/1')
+  // const allOrders = await getDataWithAuth2('https://2ieb7j62xark0rjf.mojostratus.io/rest/V1/orders?searchCriteria=all')
+  allProducts = await getDataWithAuth2('https://2ieb7j62xark0rjf.mojostratus.io/rest/V1/products?searchCriteria=all')
+
+  await console.log(allProducts.data)
+  // await console.log(allOrders.data.items.length)
+
+  // allProducts = await getAllPages(1, `https://2ieb7j62xark0rjf.mojostratus.io/rest/V1/products/?SearchCriteria[pageSize]=10`)
+  // todaysOrders = await getTodaysOrders(`n`, `https://ts967672-container.zoeysite.com/api/rest/orders?`)
 }
 
 async function getDataWithAuth(url){
   const data = await authorize.authorizations(url)
+  console.log(data)
   return data
 }
+
+
+async function getDataWithAuth2(url){
+  const request = {
+    url: url,
+    method: 'GET',
+    // body: {
+    //     "uniqueId": 1234
+    // }
+  };
+  const authHeader = Oauth1Helper.getAuthHeaderForRequest(request);
+  return await axios.get(
+    request.url,
+    // request.body,
+    { headers: authHeader });
+}
+
+
 
 async function getAllPages(n, urlPartial) {
   let prevPageData = {}
