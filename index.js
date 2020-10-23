@@ -1,4 +1,5 @@
 require('dotenv').config();
+var PORT = process.env.PORT || 3000;
 const Oauth1Helper = require('./auth')
 const axios = require('axios')
 var cors = require('cors')
@@ -16,7 +17,7 @@ app.use(bodyParser.urlencoded({
 app.get('/', function(req, res){
   return res.render('index.ejs')
 })
-app.listen(3000, function(){
+app.listen(PORT, function(){
   console.log("Server is running on port 3000")
 })
 
