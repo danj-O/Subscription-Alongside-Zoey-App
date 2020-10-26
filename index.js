@@ -26,27 +26,21 @@ app.listen(PORT, function(){
 
 const baseUrl = 'https://2ieb7j62xark0rjf.mojostratus.io'
 
-let date_ob = new Date();
-let year = date_ob.getFullYear();
-let month = ("0" + (date_ob.getMonth() + 1)).slice(-2);
-let date = ("0" + date_ob.getDate()).slice(-2);
-
-const fullDate = year + "-" + month + "-" + date
-
 getAll()
 
 async function getAll(){
+  // const subscriptions = await getDataWithAuth(`${baseUrl}/rest/V1/subscription/search?searchCriteria[pageSize]=1`)
+  // console.log('subscriptions', subscriptions.data)
+
   const orders = await getData('/rest/V1/orders?searchCriteria=all')
-  await orders.sort(compareEmail)
-  const multiPurchaseCustEmails = getMultiplePurchaseCustomerEmails(orders)
-  console.log(multiPurchaseCustEmails)
-  // build an object for each customer containing the 
-
-
-  // const allCustomerNames = await getData('/rest/V1/customers/search?searchCriteria[sortOrders][0][field]=email&searchCriteria[sortOrders][0][direction]=asc', 'firstname')
+  const multiPurchaseCustData = await getMultiplePurchaseCustomerData(orders)  //get only customers who have made multiple purchases
+  const organizedData = await organizeData(multiPurchaseCustData) //array of customers who have purchased multiple times with all of their purchases sorted
+  const customerPurchasesArr = comparePurchases(organizedData) //arr containing customers with multiple purchases and which products they have bought more than once
+  console.log('PURCHASES ARRAY', customerPurchasesArr[1])
+  //need to check dates of purcheses to suggest
 }
 
-async function getData(suffix, param){
+async function getData(suffix){
   let response = await getDataWithAuth(`${baseUrl}${suffix}`)
   // console.log(response.data.items)
   const result = []
@@ -57,41 +51,101 @@ async function getData(suffix, param){
       date : item.created_at,
       items : item.items,
       orderNumber : item.increment_id,
-      total : item.base_grand_total
+      total : item.base_grand_total,
+      // customerId : item.customer_id
     })
   })
-  return result
+  return result.sort(compareEmail) // sort the results by email
 }
 
 //FUNCTION THAT COMPARES ALL ORDERS MADE BY ONE PERSON FOR SIMILARITIES IN PRODUCTS PURCHASED
+function organizeData(customersByEmail){
+  let result = [];
+  // loop over cust obj, which is orders made by same email
+  for (customer in customersByEmail){
+    const customerPurchasedItems = []
+    //loop through orders made by cust
+    customersByEmail[customer].map(purchases =>{
+      //loop through items purchsed
+      purchases.items.map(purchase => {
+        customerPurchasedItems.push({
+          productName : purchase.name,
+          sku : purchase.sku,
+          qtyOrdered : purchase.qty_ordered,
+          createdAt : purchase.created_at,
+        })
+      })
+    })
+    //group purchases of same item together
+    customerPurchasedItems.sort(compareSKU)
+    result.push({
+      name : customersByEmail[customer][0].name,
+      email : customersByEmail[customer][0].email,
+      purchasedItems : customerPurchasedItems
+    })
+  }
+  return result
+}
 
-//IF THERE ARE SIMILARITIES, CHECK THE FREQUENCY OF THESE ORDERS (HOW FREQUENT IS ENOUGH???)
 
-//IF THERE ARE SIMILARITIES AND FREQUENCY, NOTIFY ADMIN AND CUSTOMER
+function comparePurchases(customersArr){
+  customersArr.map(customer => {
+    let prevItem = {}
+    let count = 0
+    customer.multiPurchasedItems = []
+    customer.purchasedItems.map(item => {
+      if (item.sku === prevItem.sku && count < 1){
+        customer.multiPurchasedItems.push(item)
+        count++
+      } else if (item.sku === prevItem.sku && count >= 1){
+        count++
+      } else {
+        count = 0
+      }
+      prevItem = item
+    })
+    // console.log('CUSTOMER', customer)
+  })
+  return customersArr
+}
 
-function getMultiplePurchaseCustomerEmails(orders){
+function getMultiplePurchaseCustomerData(orders){
   let prevOrder = {}
-  const emails = []
-  orders.map(order => {
+  const dataByEmail = {}
+  orders.map(order => { 
+    //if there are multiple purchases by saem email
     if (order.email == prevOrder.email){
-      // add a param to order obj?
-      // order.purchaseCount++
-      emails.push(order.email)
+      //if the email obj does already include this order, add the prev as well
+      if (!dataByEmail.hasOwnProperty(order.email)){
+        dataByEmail[order.email] = [prevOrder]
+      }
+      //add current order to multipurchases obj under the correct email param
+      dataByEmail[order.email].push(order)
     }
     prevOrder = order
   })
-  //uniqueemails are all of the emails of customers who have made multiple purchases
-  const uniqueEmails = [...new Set(emails)]
-  return uniqueEmails
+  //return all orders made by same cust email in organized obj
+  return dataByEmail
 }
 
 function compareEmail(a, b) {
-  const bandA = a.email;
-  const bandB = b.email;
+  const itemA = a.email;
+  const itemB = b.email;
   let comparison = 0;
-  if (bandA > bandB) {
+  if (itemA > itemB) {
     comparison = 1;
-  } else if (bandA < bandB) {
+  } else if (itemA < itemB) {
+    comparison = -1;
+  }
+  return comparison;
+}
+function compareSKU(a, b) {
+  const itemA = a.sku;
+  const itemB = b.sku;
+  let comparison = 0;
+  if (itemA > itemB) {
+    comparison = 1;
+  } else if (itemA < itemB) {
     comparison = -1;
   }
   return comparison;
@@ -111,6 +165,16 @@ async function getDataWithAuth(url){
 
 
 
+
+
+
+
+// let date_ob = new Date();
+// let year = date_ob.getFullYear();
+// let month = ("0" + (date_ob.getMonth() + 1)).slice(-2);
+// let date = ("0" + date_ob.getDate()).slice(-2);
+
+// const fullDate = year + "-" + month + "-" + date
 
 
 // async function getAllPages(n, urlPartial) {
