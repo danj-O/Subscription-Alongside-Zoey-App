@@ -1,0 +1,39 @@
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="./styles.css" type="text/css">
+  <title>Document</title>
+</head>
+<body>
+  <h1>List of Customers</h1>
+  <p>There are <%= customerPurchasesArr.length %> customers who have purchased the same item multiple times within the last 6 months and might be interested in signing up for a subscription</p>
+    <div class="customers-list">
+      <% if (customerPurchasesArr.length < 1){ %>
+        <p>LIST IS LOADING, PLEASE RELOAD PAGE IN A MOMEMT...</p>
+      <% } else {
+
+        for(i = 0; i < customerPurchasesArr.length; i++) { %>
+          <ul class="single-customer">
+            <li><%= customerPurchasesArr[i].name %></li>
+            <li><%= customerPurchasesArr[i].email %></li>
+            <li> ITEMS PURCHASED: 
+                <% for(j = 0; j < customerPurchasesArr[i].multiPurchasedItems.length; j++){ %>
+                  <ul>
+                    <br>
+                    <li>PRODUCT NAME: <%= customerPurchasesArr[i].multiPurchasedItems[j].productName %></li>
+                    <li>SKU: <%= customerPurchasesArr[i].multiPurchasedItems[j].sku %></li>
+                    <li>QTY ORDERED: <%= customerPurchasesArr[i].multiPurchasedItems[j].qtyOrdered %></li>
+                    <li>DATE ORDERED: <%= customerPurchasesArr[i].multiPurchasedItems[j].createdAt %></li>
+                  </ul>
+                  <br>
+                <% }
+                %>
+            </li>
+          </ul>
+          <br>
+
+        <% }
+      } %>
+    </div>
+</body>
+</html>
