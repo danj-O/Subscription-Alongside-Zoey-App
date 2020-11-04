@@ -6,7 +6,7 @@ var cors = require('cors')
 var express = require('express');
 const bodyParser = require("body-parser");
 const ObjectsToCsv = require('objects-to-csv');
-
+const utils = require('./utils')
 
 var app = express();
 
@@ -16,20 +16,22 @@ app.set('view engine','ejs');
 app.use(bodyParser.urlencoded({
   extended: true
 }));
+
 app.get('/', function(req, res){
-  // const customerPurchasesArr = getAll()
-  // const customerPurchasesArr = ["CUSTOMER DATAAAAAA", 'en', 'ga']
-  // return res.render('index.ejs', { customerPurchasesArr: samePurchaseCustomers })
-  // return res.render('index.ejs')
+  return res.render('index.ejs', { customerPurchasesArr: filteredData, revenue: revenue, getDataFrom: getDataFrom })
 })
+
 app.listen(PORT, function(){
   console.log("Server is running on port 3000")
 })
 
 
 // -----------------START----------------------------------------------------------------- 
-let samePurchaseCustomers = [];
-const getDataFrom = 2 //month
+
+
+let filteredData = [];
+let revenue;
+const getDataFrom = 1 //month
 const baseUrl = 'https://2ieb7j62xark0rjf.mojostratus.io'
 getAll()
 
@@ -38,35 +40,32 @@ async function getAll(){
   // console.log('subscriptions', subscriptions.data)
 
   await console.log('Started getting data, this will take some time...')
-  const dateFrom = calculateDateFrom()
+  const dateFrom = utils.calculateDateFrom(getDataFrom)
 
   const orders = await getData(`/rest/V1/orders?searchCriteria[filter_groups][0][filters][0][field]=created_at&searchCriteria[filter_groups][0][filters][0][value]=${dateFrom[0]}-${dateFrom[1]}-01 00:00:00&searchCriteria[filter_groups][0][filters][0][condition_type]=gt`) 
-  // const orders = await getData('/rest/V1/orders?searchCriteria[filter_groups][0][filters][0][field]=created_at&searchCriteria[filter_groups][0][filters][0][value]=2020-01-01 00:00:00&searchCriteria[filter_groups][0][filters][0][condition_type]=gt') 
-  // const orders = await getData('/rest/V1/orders?searchCriteria=all')  //get the data and sort it all by email
-  // await console.log(orders)
-  const multiPurchaseCustData = await getMultiplePurchaseCustomerData(orders)  //get only customers who have made multiple purchases
-  // console.log(multiPurchaseCustData)
+  // await console.log('ORDER', orders[0])
+  const multiPurchaseCustData = await getMultiplePurchaseCustomerData(orders)  //get only customers by address who have made multiple purchases
+  // console.log(multiPurchaseCustData['930 Steward Street'][0].items)
   const organizedData = await organizeData(multiPurchaseCustData) //array of customers who have purchased multiple times with all of their purchases sorted
-  // await console.log("organized", organizedData[10].purchasedItems)
+  // await console.log("organized", organizedData[0].purchasedItems)
   const customerPurchasesArr = await comparePurchases(organizedData) //arr containing customers with multiple purchases and which products they have bought more than once
   // await console.log('Getting the customers who purchased the same thing...')
-  samePurchaseCustomers = await filterSamePurchaseCustomers(customerPurchasesArr)  //filters out the customers who didnt purchase the same thing
-  console.log('SAME PURCHASE CUSTOMERS ARRAY', samePurchaseCustomers[5], samePurchaseCustomers.length)
-
-  //need to check dates of purcheses to suggest
-  // compareDates(samePurchaseCustomers)
-
-  // convertToCSV(samePurchaseCustomers)
-  // sendNotifications(samePurchaseCustomers)
-
-  return samePurchaseCustomers
+  samePurchaseCustomers = await utils.filterSamePurchaseCustomers(customerPurchasesArr)  //filters out the customers who didnt purchase the same thing
+  // console.log('SAME PURCHASE CUSTOMERS ARRAY', samePurchaseCustomers[0], samePurchaseCustomers.length)
+  // console.log('all multi custs', customerPurchasesArr.length)
+  filteredData = compareDates(samePurchaseCustomers)  //check the difference in dates purchsed
+  // console.log('filtered ', filteredData)
+  revenue = utils.getRevenue(filteredData)
+  // utils.convertToCSV(samePurchaseCustomers)
+  // utils.sendNotifications(samePurchaseCustomers)
+  return filteredData
 }
+
 
 async function getData(suffix){
   let response = await getDataWithAuth(`${baseUrl}${suffix}`)
-  // console.log('created_at ', response.data.items[1000].created_at)
   const result = []
-  // console.log(response.data.items[0])
+  // console.log(response.data.items[1].extension_attributes.shipping_assignments[0].shipping.address)
   await response.data.items.map(item => {
     // console.log(item.state, item.status)
     if (item.state == 'complete'){
@@ -77,38 +76,38 @@ async function getData(suffix){
         items : item.items,
         orderNumber : item.increment_id,
         total : item.base_grand_total,
-        status : item.status
-        // customerId : item.customer_id
+        status : item.status,
+        address : item.extension_attributes.shipping_assignments[0].shipping.address,
       })
     }
   })
-  return await result.sort(compareEmail) // sort the results by email
+  return await result.sort(utils.compareStreet) // sort the results by email
 }
 
-//FUNCTION THAT COMPARES ALL ORDERS MADE BY ONE PERSON FOR SIMILARITIES IN PRODUCTS PURCHASED
-function organizeData(customersByEmail){
+
+function organizeData(customersByAddress){  //FUNCTION THAT COMPARES ALL ORDERS MADE BY ONE PERSON FOR SIMILARITIES IN PRODUCTS PURCHASED
   let result = [];
-  // loop over cust obj, which is orders made by same email (get a single customer at a  time)
-  for (customer in customersByEmail){
+  for (customer in customersByAddress){  // loop over cust obj, which is orders made by same email (get a single customer at a  time)
+    // console.log('CUSTOMER', customer, customersByAddress[customer])
     const customerPurchasedItems = []
-    //loop through orders made by cust
-    customersByEmail[customer].map(purchases =>{
-      //loop through items purchsed
-      purchases.items.map(purchase => {
+    customersByAddress[customer].map(purchases =>{  //loop through orders made by cust
+      purchases.items.map(purchase => {  //loop through items purchsed
+        // console.log('PURCHASE', purchase)
         customerPurchasedItems.push({
           productName : purchase.name,
           sku : purchase.sku,
           qtyOrdered : purchase.qty_ordered,
           createdAt : purchases.createdAt,
+          price : purchase.price
         })
       })
     })
-    //group purchases of same item together
-    customerPurchasedItems.sort(compareSKU)
+    customerPurchasedItems.sort(utils.compareSKU) //group purchases of same item together
     result.push({
-      name : customersByEmail[customer][0].name,
-      email : customersByEmail[customer][0].email,
-      // createdAt : customersByEmail[customer][0].createdAt,
+      address : customersByAddress[customer][0].address.street[0],
+      name : customersByAddress[customer][0].name,
+      email : customersByAddress[customer][0].email,
+      addressOthers : customersByAddress[customer][0].address,
       purchasedItems : customerPurchasedItems
     })
   }
@@ -120,138 +119,141 @@ function comparePurchases(customersArr){
   customersArr.map(customer => {
     let prevItem = {}
     let count = 0
-    customer.multiPurchasedItems = []
+    customer.multiPurchasedItems = {}
     customer.purchasedItems.map(item => {
-      if (item.sku === prevItem.sku && count < 1){
-        customer.multiPurchasedItems.push(prevItem)
-        customer.multiPurchasedItems.push(item)
-        count++
-      } else if (item.sku === prevItem.sku && count >= 1){
-        customer.multiPurchasedItems.push(item)
-        // count++
-      } else {
+      if (item.sku === prevItem.sku && count < 1){ ////first time finding a duplicate purchase - if the skus are the same and we havent seen this item yet(count = 0)
+        if(prevItem.createdAt !== item.createdAt){  //if the items weren't bought at the same time
+          customer.multiPurchasedItems[item.sku] = {
+            productName: item.productName,
+            sku: item.sku,
+            price: item.price,
+            timesPurchased: 2,
+            qtyOrdered: [prevItem.qtyOrdered, item.qtyOrdered],
+            datesPurchased: [prevItem.createdAt, item.createdAt]
+          }
+          count++  //
+        } else {  //otherwise, the items were bought at same time SAME DATE
+          customer.multiPurchasedItems[item.sku] = {
+            productName: item.productName,
+            sku: item.sku,
+            price: item.price,
+            timesPurchased: 1,
+            qtyOrdered: [prevItem.qtyOrdered + item.qtyOrdered], //add them together instead of adding separately bc they are same day and should be treated as 1 piurchase
+            datesPurchased: [item.createdAt]  //we dont need prev date bc it was the same
+          }
+          // count++
+        }
+      } else if (item.sku === prevItem.sku && count >= 1){  //after first time finding duplicate
+        if(prevItem.createdAt !== item.createdAt){  //if the items weren't bought at the same time
+          customer.multiPurchasedItems[item.sku].timesPurchased++
+          customer.multiPurchasedItems[item.sku].qtyOrdered.push(item.qtyOrdered)
+          customer.multiPurchasedItems[item.sku].datesPurchased.push(item.createdAt)
+          count++
+        } else{  //if the times were the same
+          customer.multiPurchasedItems[item.sku].qtyOrdered[customer.multiPurchasedItems[item.sku].qtyOrdered.length - 1] += item.qtyOrdered
+        }
+      } else if(item.sku !== prevItem.sku) {
+        // console.log('new item')
         count = 0
       }
       prevItem = item
+      console.log(customer.name, count, customer.multiPurchasedItems[item.sku])
     })
-    // console.log('CUSTOMER', customer)
   })
   return customersArr
 }
 
+
 function compareDates(customers){
   customers.map(customer => {
-    console.log(customer.name)
-    let prevItem = {};
-    customer.multiPurchasedItems.map(item => {
-      const date = item.createdAt.split(' ')[0]
-      // console.log(date)
-      if(item.sku == prevItem.sku){
-        const prevDate = prevItem.createdAt.split(' ')[0]
-        console.log(prevDate, date, item.sku)
-        const dateDiff = getDateDiff(prevDate, date)
-        // console.log(dateDiff)
-        //compare prev to item dates and return a true or false?
+    // console.log(customer.name)
+    for (item in customer.multiPurchasedItems) {
+      let prevDate = [];
+      for (date in customer.multiPurchasedItems[item].datesPurchased){
+        const dateArr = customer.multiPurchasedItems[item].datesPurchased[date].split(' ')
+        const dateNoTimeArr = dateArr[0].split('-')
+        // const year = dateNoTimeArr[0]
+        // const month = dateNoTimeArr[1]
+        // const day = dateNoTimeArr[2]
+        if(dateNoTimeArr[0] == prevDate[0] && dateNoTimeArr[1] == prevDate[1] && prevDate.length > 0){  //if the purchase was on the same day
+          if(dateNoTimeArr[2] == prevDate[2]){
+            // console.log('SAMEDAY SAME PURCHASE')
+            const dateIndex = customer.multiPurchasedItems[item].datesPurchased.indexOf(date)
+            if (dateIndex > -1) {
+              customer.multiPurchasedItems[item].datesPurchased.splice(dateIndex, 1);
+            }
+
+          } else {
+            const daysApart = dateNoTimeArr[2] - prevDate[2]
+            // console.log('SAME MONTH PURCHASE ', dateNoTimeArr, prevDate, daysApart, 'days apart')
+            customer.multiPurchasedItems[item].suggest = [daysApart, 'day']
+          }
+        } else if (dateNoTimeArr[0] == prevDate[0] && dateNoTimeArr[1] !== prevDate[1] && prevDate.length > 0){  //if the year is the same and the month is different
+          const monthsApart = dateNoTimeArr[1] - prevDate[1]
+          // console.log('PURCHASED AT A LATER DATE', prevDate, dateNoTimeArr, monthsApart, 'months apart')
+          customer.multiPurchasedItems[item].suggest = [monthsApart, 'month']
+        } else if (dateNoTimeArr[0] !== prevDate[0] && prevDate.length > 0){  //if the year is different
+          const yearsApart = dateNoTimeArr[0] - prevDate[0]
+          // console.log('YEARS AOPART', dateNoTimeArr[0], prevDate[0])
+          // console.log('PURCHASED IN A DIFF YEAR', prevDate, dateNoTimeArr, yearsApart, 'years')
+          customer.multiPurchasedItems[item].suggest = [yearsApart, 'year']
+        } else {
+          // console.log(prevDate, dateNoTimeArr)
+        }
+        prevDate = dateNoTimeArr
       }
-      prevItem = item
-    })
+    }
+    // console.log(customer.multiPurchasedItems)
   })
+  const filtered = filterOutByDate(customers)
+  // console.log('finish + length:', filtered.length)
+  return filtered
 }
 
-function getDateDiff(prevDate, date){
-  const prevDateArr = prevDate.split('-')
-  const prevYear = prevDateArr[0]
-  const prevMonth = prevDateArr[1]
-
-  const dateArr = date.split('-')
-  const year = dateArr[0]
-  const month = dateArr[1]
-
-  // const difference = 
-
-  return [prevYear, prevMonth, year, month]
-}
-
-function filterSamePurchaseCustomers(data){
-  const filteredData = data.filter(customer => {
-    return customer.multiPurchasedItems.length > 0 ? true : false
-  })
-  return filteredData
+function filterOutByDate(customers){
+  const result = {}
+  for (customer in customers) { //loop through customers
+    // delete customers[customer].purchasedItems
+    if (Object.keys(customers[customer].multiPurchasedItems).length > 0){  //if the customer has multi purchases
+      const newCustomerObj = {
+        address : customers[customer].address,
+        name : customers[customer].name,
+        email : customers[customer].email,
+        addressOthers : customers[customer].addressOthers,
+        suggestedItems : {}
+      }
+      for(item in customers[customer].multiPurchasedItems){  //loop through multi purchases
+        if (customers[customer].multiPurchasedItems[item].suggest == undefined || customers[customer].multiPurchasedItems[item].suggest == null || customers[customer].multiPurchasedItems[item].suggest == {}) {  //if there is no suggestion in the object
+        } else {
+          newCustomerObj.suggestedItems[item] = customers[customer].multiPurchasedItems[item]
+          result[customers[customer].address] = newCustomerObj
+        }
+      }
+    } else {
+    }
+  }
+  return result
 }
 
 function getMultiplePurchaseCustomerData(orders){
-  let prevOrder = {}
-  const dataByEmail = {}
+  let prevOrder = {
+    address: {
+      street: []
+    }
+  }
+  const dataByAddress = {}
   orders.map(order => { 
-    //if there are multiple purchases by saem email
-    if (order.email == prevOrder.email){
-      //if the email obj does already include this order, add the prev as well
-      if (!dataByEmail.hasOwnProperty(order.email)){
-        dataByEmail[order.email] = [prevOrder]
+    if (order.address.street[0] == prevOrder.address.street[0]){  //if there are multiple purchases by saem address
+      if (!dataByAddress.hasOwnProperty(order.address.street[0])){  //if the databyemail obj does already include this order, add the prev as well
+        dataByAddress[order.address.street[0]] = [prevOrder]
       }
-      //add current order to multipurchases obj under the correct email param
-      dataByEmail[order.email].push(order)
+      dataByAddress[order.address.street[0]].push(order)  //add current order to multipurchases obj under the correct email param
     }
     prevOrder = order
   })
-  //return all orders made by same cust email in organized obj
-  return dataByEmail
+  return dataByAddress  //return all orders made by same cust email in organized obj
 }
 
-function compareEmail(a, b) {
-  const itemA = a.email;
-  const itemB = b.email;
-  let comparison = 0;
-  if (itemA > itemB) {
-    comparison = 1;
-  } else if (itemA < itemB) {
-    comparison = -1;
-  }
-  return comparison;
-}
-function compareSKU(a, b) {
-  const itemA = a.sku;
-  const itemB = b.sku;
-  let comparison = 0;
-  if (itemA > itemB) {
-    comparison = 1;
-  } else if (itemA < itemB) {
-    comparison = -1;
-  }
-  return comparison;
-}
-
-
-async function convertToCSV(data){
-  data.map(customer =>{
-    customer.purchasedItems = []
-  })
-  const csv = new ObjectsToCsv(data);
-  // Save to file:
-  await csv.toDisk(`./customerList.csv`);
-  console.log('CSV CREATED')
-  // Return the CSV file as string:
-  // console.log(await csv.toString());
-}
-
-function calculateDateFrom(){
-  let date_ob = new Date();
-  let year = date_ob.getFullYear();
-  let month = ("0" + (date_ob.getMonth() + 1)).slice(-2);
-  // month = 4
-  // console.log(year, month)
-  for (i = getDataFrom; i > 0; i--){
-    if (month < 1){
-      month = 12
-      year--
-    }
-    month--
-  }
-  month = (month < 10 ? '0' : '')+month
-  console.log('GETTING ALL DATA FROM: ', year, '-', month)
-  // let date = ("0" + date_ob.getDate()).slice(-2);
-  return [year, month]
-}
 
 async function getDataWithAuth(url){
   try{
@@ -262,82 +264,3 @@ async function getDataWithAuth(url){
     console.log(err)
   }
 }
-
-
-async function sendNotifications(data){
-  const msg = {
-    to: 'dan@danjomedia.com',
-    from: 'admin@sgy.co',
-    subject: `Recommended Customers for Subscriptions`,
-    html: createHTML(data),
-    // attachments: [
-    //   {
-    //     content: attachment2,
-    //     fileName: `${origData.batchName}.csv`,
-    //     type: 'text/csv',
-    //     dispostion: 'attachment'
-    //   }
-    // ]
-  };
-  await sgMail
-    .send(msg)
-    .then(() => {}, error => {
-      console.error(error);
-  
-      if (error.response) {
-        console.error(error.response.body)
-      }
-    });
-  await console.log(`Email Sent to ${origData.sendZipEmail}`)
-}
-
-//takes all data and returns a string of html code
-//containing all customers and their data who should get subscription
-function createHTML(data){
-  data.map(customer => {
-
-    `<h1>${customer.name}</h1>
-    <h3>purchased</h3>
-    <p> ${origData.message} </p>
-    <h4>ASID/URL List:</h4>
-    <p> ${origData.batchUrls} </p>`
-  })
-}
-
-
-
-
-// let date_ob = new Date();
-// let year = date_ob.getFullYear();
-// let month = ("0" + (date_ob.getMonth() + 1)).slice(-2);
-// let date = ("0" + date_ob.getDate()).slice(-2);
-
-// const fullDate = year + "-" + month + "-" + date
-
-
-// async function getAllPages(n, urlPartial) {
-//   let prevPageData = {}
-//   const allData = {}
-//   for (i=1; ; i++){
-//     const urlCat = `${urlPartial}page=${i}`
-//     const data = await getDataWithAuth(urlCat)
-//     if (JSON.stringify(data) === JSON.stringify(prevPageData)){
-//       break
-//     }
-//     prevPageData = {}
-//     for (key in await data){
-//       prevPageData[key] = data[key]
-//       allData[key] = data[key]
-//     }
-//   }
-//   await console.log('GET ALL DATA COMPLETE')
-//   return await allData
-// }
-
-// async function getTodaysOrders(n, urlPartial){
-//   // const allData = {}
-//   const urlCat = `${urlPartial}filter[1][attribute]=created_at&filter[1][gte]=${fullDate}%2000:00:00&filter[2][attribute]=created_at&filter[2][lte]=${fullDate}%2023:59:59&`
-//   //returns all the pages for the orders
-//   const data = await getAllPages(n, urlCat)
-//   return await data
-// }
