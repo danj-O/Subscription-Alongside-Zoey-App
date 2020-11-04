@@ -31,7 +31,7 @@ app.listen(PORT, function(){
 
 let filteredData = [];
 let revenue;
-const getDataFrom = 3 //month
+const getDataFrom = 6 //month
 const baseUrl = 'https://2ieb7j62xark0rjf.mojostratus.io'
 getAll()
 

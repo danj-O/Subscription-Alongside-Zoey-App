@@ -89,8 +89,6 @@ function calculateDateFrom(getDataFrom){
   let date_ob = new Date();
   let year = date_ob.getFullYear();
   let month = ("0" + (date_ob.getMonth() + 1)).slice(-2);
-  // month = 4
-  // console.log(year, month)
   for (i = getDataFrom; i > 0; i--){
     if (month < 1){
       month = 12
@@ -100,7 +98,6 @@ function calculateDateFrom(getDataFrom){
   }
   month = (month < 10 ? '0' : '')+month
   console.log('GETTING ALL DATA FROM: ', year, '-', month)
-  // let date = ("0" + date_ob.getDate()).slice(-2);
   return [year, month]
 }
 
