@@ -105,20 +105,82 @@ function calculateDateFrom(getDataFrom){
 }
 
 function getRevenue(data){
-  for (customer in data) {
-    // console.log(data[customer].suggestedItems)
+  let total = 0
+  for (customer in data) {  //loop thru customers
+    for (item in data[customer].suggestedItems){  //loop thru items purchased by customer
 
-    // customer[data].suggestedItems.map(item => {
-    //   const average = getAverage(item.qtyOrdered)
-    // })
+      if (data[customer].suggestedItems[item].suggest[1] == 'day' && data[customer].suggestedItems[item].suggest[0] < 5){
+        delete data[customer].suggestedItems[item]
+        if (Object.keys(data[customer].suggestedItems).length < 1){
+          console.log('SHOULD DELTE')
+          delete data[customer]
+        }
+        continue
+      }
+
+
+      let suggestedQty;
+      const mean = getMean(data[customer].suggestedItems[item].qtyOrdered)  // get the mean of array of qtypurchased
+      if (mean[0] === undefined){  //get mean will return undefined if there is no item with more than 1 occurance
+        const average = getAverage(data[customer].suggestedItems[item].qtyOrdered)  //if that's the case, get an average of all qtys
+        suggestedQty = average
+      } else {
+        suggestedQty = mean[0]
+      }
+      
+      
+      
+      const singlePurchaseRevenue = suggestedQty * data[customer].suggestedItems[item].price
+      const singlePurchaseRevenuePerMonth = getSinglePurchaseRevenuePerMonth(data[customer].suggestedItems[item].suggest, singlePurchaseRevenue)
+      data[customer].suggestedItems[item].singlePurchaseRevenuePerMonth = singlePurchaseRevenuePerMonth
+      total += singlePurchaseRevenuePerMonth
+      console.log(data[customer])
+
+    }
   }
-  //get average of all qty ordered
-  //multiply by price of item
-  // return revenueTotal
+  console.log('TOTAL', total)
+  return total.toFixed(2)
+}
+
+function getSinglePurchaseRevenuePerMonth(suggestArr, rev){
+  let result
+  if(suggestArr[1] == 'day'){
+    // const purchaseTimes = Math.floor(30 / suggestArr[0])  //we don't REALLY need to round down here, maybe we shouldn't even
+    const purchaseTimes = 30 / suggestArr[0]  //we don't REALLY need to round down here, maybe we shouldn't even
+    result = rev * purchaseTimes
+  }else if(suggestArr[1] == 'month'){
+    result = rev
+  }else if(suggestArr[1] == 'year'){
+    //nothing yet as we can't wuery this far back
+  }
+  return result
+}
+
+function getMean(arr1){
+  var mf = 1;
+var m = 0;
+var item;
+for (var i=0; i<arr1.length; i++)
+{
+        for (var j=i; j<arr1.length; j++)
+        {
+                if (arr1[i] == arr1[j])
+                  m++;
+                if (mf<m)
+                {
+                  mf=m; 
+                  item = arr1[i];
+                }
+        }
+        m=0;
+}
+// console.log(item+" ( " +mf +" times ) ") ;
+return [item, mf]
 }
 
 function getAverage(numbers){  //takes an array of numbers and returns the average
-  return numbers.reduce((a, b) => (a + b)) / numbers.length;
+  const average = numbers.reduce((a, b) => (a + b)) / numbers.length;
+  return average
 }
 
 module.exports = {

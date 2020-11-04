@@ -31,7 +31,7 @@ app.listen(PORT, function(){
 
 let filteredData = [];
 let revenue;
-const getDataFrom = 1 //month
+const getDataFrom = 3 //month
 const baseUrl = 'https://2ieb7j62xark0rjf.mojostratus.io'
 getAll()
 
@@ -53,9 +53,9 @@ async function getAll(){
   samePurchaseCustomers = await utils.filterSamePurchaseCustomers(customerPurchasesArr)  //filters out the customers who didnt purchase the same thing
   // console.log('SAME PURCHASE CUSTOMERS ARRAY', samePurchaseCustomers[0], samePurchaseCustomers.length)
   // console.log('all multi custs', customerPurchasesArr.length)
-  filteredData = compareDates(samePurchaseCustomers)  //check the difference in dates purchsed
+  filteredData = await compareDates(samePurchaseCustomers)  //check the difference in dates purchsed
   // console.log('filtered ', filteredData)
-  revenue = utils.getRevenue(filteredData)
+  revenue = await utils.getRevenue(filteredData)
   // utils.convertToCSV(samePurchaseCustomers)
   // utils.sendNotifications(samePurchaseCustomers)
   return filteredData
@@ -88,11 +88,9 @@ async function getData(suffix){
 function organizeData(customersByAddress){  //FUNCTION THAT COMPARES ALL ORDERS MADE BY ONE PERSON FOR SIMILARITIES IN PRODUCTS PURCHASED
   let result = [];
   for (customer in customersByAddress){  // loop over cust obj, which is orders made by same email (get a single customer at a  time)
-    // console.log('CUSTOMER', customer, customersByAddress[customer])
     const customerPurchasedItems = []
     customersByAddress[customer].map(purchases =>{  //loop through orders made by cust
       purchases.items.map(purchase => {  //loop through items purchsed
-        // console.log('PURCHASE', purchase)
         customerPurchasedItems.push({
           productName : purchase.name,
           sku : purchase.sku,
@@ -153,11 +151,9 @@ function comparePurchases(customersArr){
           customer.multiPurchasedItems[item.sku].qtyOrdered[customer.multiPurchasedItems[item.sku].qtyOrdered.length - 1] += item.qtyOrdered
         }
       } else if(item.sku !== prevItem.sku) {
-        // console.log('new item')
         count = 0
       }
       prevItem = item
-      // console.log(customer.name, count, customer.multiPurchasedItems[item.sku])
     })
   })
   return customersArr
@@ -166,15 +162,11 @@ function comparePurchases(customersArr){
 
 function compareDates(customers){
   customers.map(customer => {
-    // console.log(customer.name)
     for (item in customer.multiPurchasedItems) {
       let prevDate = [];
       for (date in customer.multiPurchasedItems[item].datesPurchased){
         const dateArr = customer.multiPurchasedItems[item].datesPurchased[date].split(' ')
         const dateNoTimeArr = dateArr[0].split('-')
-        // const year = dateNoTimeArr[0]
-        // const month = dateNoTimeArr[1]
-        // const day = dateNoTimeArr[2]
         if(dateNoTimeArr[0] == prevDate[0] && dateNoTimeArr[1] == prevDate[1] && prevDate.length > 0){  //if the purchase was on the same day
           if(dateNoTimeArr[2] == prevDate[2]){
             // console.log('SAMEDAY SAME PURCHASE')
@@ -185,35 +177,27 @@ function compareDates(customers){
 
           } else {
             const daysApart = dateNoTimeArr[2] - prevDate[2]
-            // console.log('SAME MONTH PURCHASE ', dateNoTimeArr, prevDate, daysApart, 'days apart')
             customer.multiPurchasedItems[item].suggest = [daysApart, 'day']
           }
         } else if (dateNoTimeArr[0] == prevDate[0] && dateNoTimeArr[1] !== prevDate[1] && prevDate.length > 0){  //if the year is the same and the month is different
           const monthsApart = dateNoTimeArr[1] - prevDate[1]
-          // console.log('PURCHASED AT A LATER DATE', prevDate, dateNoTimeArr, monthsApart, 'months apart')
           customer.multiPurchasedItems[item].suggest = [monthsApart, 'month']
         } else if (dateNoTimeArr[0] !== prevDate[0] && prevDate.length > 0){  //if the year is different
           const yearsApart = dateNoTimeArr[0] - prevDate[0]
-          // console.log('YEARS AOPART', dateNoTimeArr[0], prevDate[0])
-          // console.log('PURCHASED IN A DIFF YEAR', prevDate, dateNoTimeArr, yearsApart, 'years')
           customer.multiPurchasedItems[item].suggest = [yearsApart, 'year']
         } else {
-          // console.log(prevDate, dateNoTimeArr)
         }
         prevDate = dateNoTimeArr
       }
     }
-    // console.log(customer.multiPurchasedItems)
   })
   const filtered = filterOutByDate(customers)
-  // console.log('finish + length:', filtered.length)
   return filtered
 }
 
 function filterOutByDate(customers){
   const result = {}
   for (customer in customers) { //loop through customers
-    // delete customers[customer].purchasedItems
     if (Object.keys(customers[customer].multiPurchasedItems).length > 0){  //if the customer has multi purchases
       const newCustomerObj = {
         address : customers[customer].address,

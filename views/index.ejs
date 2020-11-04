@@ -11,7 +11,9 @@
       <p>GETTING DATA FROM MAGENTO 2, PLEASE RELOAD PAGE IN A MOMENT...</p>
       <% } else { %>
         <p>There are <%= Object.keys(customerPurchasesArr).length %> customers who have purchased the same item multiple times within the last <%= getDataFrom %> months and might be interested in signing up for a subscription</p>
-        <p>Expected revenue from subscriptions: <%= revenue %></p>  
+        <p>Expected revenue from subscriptions: $<%= revenue %></p>  
+        <br>
+        <p>"Times purchased" lumps all purchases of same item by same address ON THE SAME DAY together</p>
         
         <% for(customer in customerPurchasesArr) { %>
           <ul class="single-customer">
@@ -22,17 +24,18 @@
             <li>PHONE: <%= customerPurchasesArr[customer].addressOthers.telephone %></li>
             <li><%= customerPurchasesArr[customer].name %></li>
             <li><%= customerPurchasesArr[customer].email %></li>
-            <li> ITEMS PURCHASED: 
+            <li> Items Purchased Multiple Times: 
                 <% for(item in customerPurchasesArr[customer].suggestedItems){ %>
                   <ul>
                     <br>
-                    <li>PRODUCT NAME: <%= customerPurchasesArr[customer].suggestedItems[item].productName %></li>
-                    <li>SUGGESTED SUBSCRIPTION: <%= customerPurchasesArr[customer].suggestedItems[item].suggest %></li>
+                    <li>Product: <%= customerPurchasesArr[customer].suggestedItems[item].productName %></li>
                     <li>SKU: <%= customerPurchasesArr[customer].suggestedItems[item].sku %></li>
-                    <li>TIMES PURCHASED: <%= customerPurchasesArr[customer].suggestedItems[item].timesPurchased %></li>
-                    <li>QTY ORDERED: <%= customerPurchasesArr[customer].suggestedItems[item].qtyOrdered %></li>
-                    <li>DATES ORDERED: <%= customerPurchasesArr[customer].suggestedItems[item].datesPurchased %></li>
-                    <li>PRICE: $<%= customerPurchasesArr[customer].suggestedItems[item].price %></li>
+                    <li>Times Purchased: <%= customerPurchasesArr[customer].suggestedItems[item].timesPurchased %></li>
+                    <li>Qty Ordered: <%= customerPurchasesArr[customer].suggestedItems[item].qtyOrdered %></li>
+                    <li>Dates Ordered: <%= customerPurchasesArr[customer].suggestedItems[item].datesPurchased %></li>
+                    <li>Price: $<%= customerPurchasesArr[customer].suggestedItems[item].price %></li>
+                    <li>Suggested Subscription: <%= customerPurchasesArr[customer].suggestedItems[item].suggest %></li>
+                    <li>Pos Revenue Per Month: $<%= customerPurchasesArr[customer].suggestedItems[item].singlePurchaseRevenuePerMonth %></li>
                   </ul>
                   <br>
                 <% }
