@@ -157,7 +157,7 @@ function comparePurchases(customersArr){
         count = 0
       }
       prevItem = item
-      console.log(customer.name, count, customer.multiPurchasedItems[item.sku])
+      // console.log(customer.name, count, customer.multiPurchasedItems[item.sku])
     })
   })
   return customersArr
