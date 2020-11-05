@@ -106,7 +106,7 @@ function getRevenue(data){
   for (customer in data) {  //loop thru customers
     for (item in data[customer].suggestedItems){  //loop thru items purchased by customer
 
-      if (data[customer].suggestedItems[item].suggest[1] == 'day' && data[customer].suggestedItems[item].suggest[0] < 5){
+      if (data[customer].suggestedItems[item].suggest[1] == 'day' && data[customer].suggestedItems[item].suggest[0] < 7){
         delete data[customer].suggestedItems[item]
         if (Object.keys(data[customer].suggestedItems).length < 1){
           // console.log('SHOULD DELTE')

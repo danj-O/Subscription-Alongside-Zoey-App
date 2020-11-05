@@ -53,7 +53,7 @@ app.listen(PORT, function(){
 
 let filteredData = [];
 let revenue;
-const getDataFrom = 1 //months ago
+const getDataFrom = 3 //months ago
 const baseUrl = 'https://2ieb7j62xark0rjf.mojostratus.io'
 let currentDate
 getAll()
