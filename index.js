@@ -1,12 +1,16 @@
 require('dotenv').config();
 var PORT = process.env.PORT || 3000;
 const Oauth1Helper = require('./auth')
+const jwt = require('jsonwebtoken')
 const axios = require('axios')
 var cors = require('cors')
 var express = require('express');
 const bodyParser = require("body-parser");
 const ObjectsToCsv = require('objects-to-csv');
 const utils = require('./utils')
+const userAuth = require('./userAuth')
+var cookieParser = require('cookie-parser');
+
 
 var app = express();
 
@@ -16,9 +20,27 @@ app.set('view engine','ejs');
 app.use(bodyParser.urlencoded({
   extended: true
 }));
+app.use(cookieParser());
 
-app.get('/', function(req, res){
-  return res.render('index.ejs', { customerPurchasesArr: filteredData, revenue: revenue, getDataFrom: getDataFrom })
+app.get('/', userAuth.verifyToken, function(req, res){
+  return res.render('index.ejs', { customerPurchasesArr: filteredData, revenue: revenue, getDataFrom: getDataFrom, currentDate: currentDate })
+})
+
+app.get('/login', function(req,res){
+  return res.render('login.ejs')
+})
+app.post('/login', (req, res) => {
+  const pw = {
+    password: req.body.password
+  }
+  if (req.body.password === process.env.APP_PASSWORD){
+    var token = jwt.sign({pw : pw}, "secretkey", {expiresIn: '30s'} )
+    res.cookie('JWT', token, {maxAge: 300000})
+    res.redirect('/')
+  } else {
+    console.log("PASSWORD IS INCORRECT")
+    res.redirect('/login')
+  }
 })
 
 app.listen(PORT, function(){
@@ -31,8 +53,9 @@ app.listen(PORT, function(){
 
 let filteredData = [];
 let revenue;
-const getDataFrom = 6 //month
+const getDataFrom = 1 //months ago
 const baseUrl = 'https://2ieb7j62xark0rjf.mojostratus.io'
+let currentDate
 getAll()
 
 async function getAll(){
@@ -58,6 +81,7 @@ async function getAll(){
   revenue = await utils.getRevenue(filteredData)
   // utils.convertToCSV(samePurchaseCustomers)
   // utils.sendNotifications(samePurchaseCustomers)
+  currentDate = new Date();  //create a timestamp of last data pull
   return filteredData
 }
 

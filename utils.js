@@ -109,7 +109,7 @@ function getRevenue(data){
       if (data[customer].suggestedItems[item].suggest[1] == 'day' && data[customer].suggestedItems[item].suggest[0] < 5){
         delete data[customer].suggestedItems[item]
         if (Object.keys(data[customer].suggestedItems).length < 1){
-          console.log('SHOULD DELTE')
+          // console.log('SHOULD DELTE')
           delete data[customer]
         }
         continue
@@ -131,7 +131,7 @@ function getRevenue(data){
       const singlePurchaseRevenuePerMonth = getSinglePurchaseRevenuePerMonth(data[customer].suggestedItems[item].suggest, singlePurchaseRevenue)
       data[customer].suggestedItems[item].singlePurchaseRevenuePerMonth = singlePurchaseRevenuePerMonth
       total += singlePurchaseRevenuePerMonth
-      console.log(data[customer])
+      // console.log(data[customer])
 
     }
   }

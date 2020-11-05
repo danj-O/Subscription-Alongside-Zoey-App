@@ -6,12 +6,14 @@
 </head>
 <body>
   <h1>List of Customers</h1>
+  <p>You are currently logged in</p>
   <div class="customers-list">
     <% if (customerPurchasesArr.length < 1){ %>
       <p>GETTING DATA FROM MAGENTO 2, PLEASE RELOAD PAGE IN A MOMENT...</p>
       <% } else { %>
         <p>There are <%= Object.keys(customerPurchasesArr).length %> customers who have purchased the same item multiple times within the last <%= getDataFrom %> months and might be interested in signing up for a subscription</p>
-        <p>Expected revenue per month from subscriptions: $<%= revenue %></p>  
+        <p>Expected revenue per month from subscriptions: $<%= revenue %></p>
+        <p>Last Data Pull: $<%= currentDate %></p>
         <br>
         <p>"Times purchased" lumps all purchases of same item by same address ON THE SAME DAY together</p>
         
