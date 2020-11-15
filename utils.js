@@ -2,6 +2,34 @@ const add = (a,b) => {
   return a+b
 }
 
+function makeObjectintoArray(data){
+  const result = [];
+  for (obj in data){
+    const newObj = {
+      address: data[obj].address,
+      name: data[obj].name,
+      email: data[obj].email,
+      addressOthers: data[obj].addressOthers,
+      suggestedItems: []
+    }
+    const newItemsArr = []
+    for(itemObj in data[obj].suggestedItems){
+      newObj.suggestedItems.push(data[obj].suggestedItems[itemObj])
+    }
+    result.push(newObj)
+    // console.log("REASULTT", newObj)
+  }
+  return result
+}
+
+// function makeObjectintoArray(data){
+//   const result = [];
+//   for (obj in data){
+//     result.push(data[obj])
+//   }
+//   return result
+// }
+
 function filterSamePurchaseCustomers(data){
   const filteredData = data.filter(customer => {
     return Object.keys(customer.multiPurchasedItems).length > 0 ? true : false
@@ -102,6 +130,7 @@ function calculateDateFrom(getDataFrom){
 }
 
 function getRevenue(data){
+  // console.log(typeof(data))
   let total = 0
   for (customer in data) {  //loop thru customers
     for (item in data[customer].suggestedItems){  //loop thru items purchased by customer
@@ -189,5 +218,5 @@ module.exports = {
   sendNotifications : sendNotifications,
   calculateDateFrom : calculateDateFrom,
   getRevenue : getRevenue,
-
+  makeObjectintoArray: makeObjectintoArray
 }

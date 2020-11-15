@@ -6,12 +6,18 @@ const axios = require('axios')
 var cors = require('cors')
 var express = require('express');
 const bodyParser = require("body-parser");
-const ObjectsToCsv = require('objects-to-csv');
+// const ObjectsToCsv = require('objects-to-csv');
 const utils = require('./utils')
 const userAuth = require('./userAuth')
+const dbUtils = require('./mongo')
+const MongoClient = require('mongodb').MongoClient;
+// const Customer = require('./model/User')
 var cookieParser = require('cookie-parser');
+// const mongoose = require('mongoose');
+// const { getRevenue } = require('./utils');
 
-
+const url = 'mongodb+srv://admin:changeme@123@ziptie.auxwu.mongodb.net/ziptie?retryWrites=true&w=majority';
+const dbName = 'ziptie'
 var app = express();
 
 app.use(cors())
@@ -22,8 +28,31 @@ app.use(bodyParser.urlencoded({
 }));
 app.use(cookieParser());
 
-app.get('/', userAuth.verifyToken, function(req, res){
-  return res.render('index.ejs', { customerPurchasesArr: filteredData, revenue: revenue, getDataFrom: getDataFrom, currentDate: currentDate })
+app.get('/', userAuth.verifyToken, function(req, res, next){
+  const resultArr = []
+
+  MongoClient.connect(url, function(err, client){
+    const db = client.db(dbName);
+    const cursor = db.collection('customers2').find({})
+
+    //need to rewrite the getrevenue function to calculate from items in the database do it can update with new stuff
+
+    cursor.forEach((doc, err)=> {
+      resultArr.push(doc)
+    }, function(){
+      client.close()
+
+      //REVENUE FUNC HAS SOMETHING WRONG WITH IT, it calculates less revenue when we get more data???
+      // revenue = utils.getRevenue(resultArr)  //need to get the total revenue here instead of when we originally get the data
+      revenue = 0
+      res.render('index.ejs', { 
+        customerPurchasesArr: resultArr,
+        revenue: revenue,
+        getDataFrom: getDataFrom,
+        currentDate: currentDate 
+      })
+    })
+  })
 })
 
 app.get('/login', function(req,res){
@@ -43,6 +72,14 @@ app.post('/login', (req, res) => {
   }
 })
 
+// mongoose.connect(
+//   url,
+//   {useUnifiedTopology: true, useNewUrlParser: true},
+//   (req, res) => {
+//     console.log("connected to the database with mongoose")
+//   }
+// )
+
 app.listen(PORT, function(){
   console.log("Server is running on port 3000")
 })
@@ -50,15 +87,17 @@ app.listen(PORT, function(){
 
 // -----------------START----------------------------------------------------------------- 
 
+function con(a,b,c){console.log(a,b,c)}
 
-let filteredData = [];
-let revenue;
-const getDataFrom = 3 //months ago
+let revenue = 0;
+const getDataFrom = 2 //months ago
 const baseUrl = 'https://2ieb7j62xark0rjf.mojostratus.io'
 let currentDate
-getAll()
+// dbUtils.getAndCompareWithNew()
+getNewData()
 
-async function getAll(){
+
+async function getNewData(){  //this function gets all data from m2 and removes any items that are repeats  in the db
   // const subscriptions = await getDataWithAuth(`${baseUrl}/rest/V1/subscription/search?searchCriteria[pageSize]=1`)
   // console.log('subscriptions', subscriptions.data)
 
@@ -66,22 +105,25 @@ async function getAll(){
   const dateFrom = utils.calculateDateFrom(getDataFrom)
 
   const orders = await getData(`/rest/V1/orders?searchCriteria[filter_groups][0][filters][0][field]=created_at&searchCriteria[filter_groups][0][filters][0][value]=${dateFrom[0]}-${dateFrom[1]}-01 00:00:00&searchCriteria[filter_groups][0][filters][0][condition_type]=gt`) 
-  // await console.log('ORDER', orders[0])
   const multiPurchaseCustData = await getMultiplePurchaseCustomerData(orders)  //get only customers by address who have made multiple purchases
-  // console.log(multiPurchaseCustData['930 Steward Street'][0].items)
   const organizedData = await organizeData(multiPurchaseCustData) //array of customers who have purchased multiple times with all of their purchases sorted
-  // await console.log("organized", organizedData[0].purchasedItems)
+  // console.log(organizedData[0].purchasedItems)
   const customerPurchasesArr = await comparePurchases(organizedData) //arr containing customers with multiple purchases and which products they have bought more than once
-  // await console.log('Getting the customers who purchased the same thing...')
+  console.log(customerPurchasesArr[0].multiPurchasedItems)
   samePurchaseCustomers = await utils.filterSamePurchaseCustomers(customerPurchasesArr)  //filters out the customers who didnt purchase the same thing
-  // console.log('SAME PURCHASE CUSTOMERS ARRAY', samePurchaseCustomers[0], samePurchaseCustomers.length)
-  // console.log('all multi custs', customerPurchasesArr.length)
-  filteredData = await compareDates(samePurchaseCustomers)  //check the difference in dates purchsed
-  // console.log('filtered ', filteredData)
-  revenue = await utils.getRevenue(filteredData)
-  // utils.convertToCSV(samePurchaseCustomers)
-  // utils.sendNotifications(samePurchaseCustomers)
+  const filteredData = await compareDates(samePurchaseCustomers)  //check the difference in dates purchsed, THIS GIVES THE ACTUAL SUGGESTION
+  // revenue = await utils.getRevenue(filteredData)
+  const arrayOfFilteredData = await utils.makeObjectintoArray(filteredData)
+
+  // await dbUtils.upsertMany(arrayOfFilteredData)
+  await dbUtils.appendNewDataToMongo(arrayOfFilteredData)
+  // await dbUtils.getAndCompareWithNew(arrayOfFilteredData)
+
+  // await dbUtils.sendMany('ziptie', 'customers', arrayOfFilteredData)
+  // sendWithMongoose(arrayOfFilteredData)
+  // dbUtils.getAllFromDb('ziptie', 'customers')
   currentDate = new Date();  //create a timestamp of last data pull
+  con('FINISHED', arrayOfFilteredData.length)
   return filteredData
 }
 
@@ -150,6 +192,7 @@ function comparePurchases(customersArr){
             sku: item.sku,
             price: item.price,
             timesPurchased: 2,
+            purchaseInstances: [{qtyOrdered: prevItem.qtyOrdered, datesPurchased: prevItem.createdAt}, {qtyOrdered: item.qtyOrdered, datesPurchased: item.createdAt}],
             qtyOrdered: [prevItem.qtyOrdered, item.qtyOrdered],
             datesPurchased: [prevItem.createdAt, item.createdAt]
           }
@@ -160,6 +203,7 @@ function comparePurchases(customersArr){
             sku: item.sku,
             price: item.price,
             timesPurchased: 1,
+            purchaseInstances: [{qtyOrdered: prevItem.qtyOrdered + item.qtyOrdered, datesPurchased: item.createdAt}],
             qtyOrdered: [prevItem.qtyOrdered + item.qtyOrdered], //add them together instead of adding separately bc they are same day and should be treated as 1 piurchase
             datesPurchased: [item.createdAt]  //we dont need prev date bc it was the same
           }
@@ -168,11 +212,13 @@ function comparePurchases(customersArr){
       } else if (item.sku === prevItem.sku && count >= 1){  //after first time finding duplicate
         if(prevItem.createdAt !== item.createdAt){  //if the items weren't bought at the same time
           customer.multiPurchasedItems[item.sku].timesPurchased++
+          customer.multiPurchasedItems[item.sku].purchaseInstances.push({qtyOrdered: item.qtyOrdered, datesPurchased: item.createdAt})
           customer.multiPurchasedItems[item.sku].qtyOrdered.push(item.qtyOrdered)
           customer.multiPurchasedItems[item.sku].datesPurchased.push(item.createdAt)
           count++
         } else{  //if the times were the same
           customer.multiPurchasedItems[item.sku].qtyOrdered[customer.multiPurchasedItems[item.sku].qtyOrdered.length - 1] += item.qtyOrdered
+          customer.multiPurchasedItems[item.sku].purchaseInstances[customer.multiPurchasedItems[item.sku].purchaseInstances.length - 1].qtyOrdered += item.qtyOrdered
         }
       } else if(item.sku !== prevItem.sku) {
         count = 0
