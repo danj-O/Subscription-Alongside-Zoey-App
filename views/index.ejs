@@ -30,9 +30,6 @@
         <% for(customer in customerPurchasesArr) { %>
           <ul class="single-customer">
             <li class="address"><%= customerPurchasesArr[customer].address %>, <%= customerPurchasesArr[customer].addressOthers.city %>, <%= customerPurchasesArr[customer].addressOthers.region %> <%= customerPurchasesArr[customer].addressOthers.postcode %></li>
-            <!-- <li><%= customerPurchasesArr[customer].addressOthers.city %></li> -->
-            <!-- <li><%= customerPurchasesArr[customer].addressOthers.region %></li> -->
-            <!-- <li><%= customerPurchasesArr[customer].addressOthers.postcode %></li> -->
             <li>PHONE: <%= customerPurchasesArr[customer].addressOthers.telephone %></li>
             <li><%= customerPurchasesArr[customer].name %></li>
             <li><%= customerPurchasesArr[customer].email %></li>
@@ -42,7 +39,7 @@
                   <br>
                   <li><span style="font-weight: 600;">Product:</span> <%= customerPurchasesArr[customer].suggestedItems[item].productName %></li>
                   <li>SKU: <%= customerPurchasesArr[customer].suggestedItems[item].sku %></li>
-                  <li>Price: $<%= customerPurchasesArr[customer].suggestedItems[item].price.toFixed(2) %></li>
+                  <li>Price: $<%= customerPurchasesArr[customer].suggestedItems[item].price %></li>
                   <li>Times Purchased: <%= customerPurchasesArr[customer].suggestedItems[item].timesPurchased %></li>
                   <li>Qty Ordered: <%= customerPurchasesArr[customer].suggestedItems[item].qtyOrdered %></li>
                   <li>Dates Ordered: <%= customerPurchasesArr[customer].suggestedItems[item].datesPurchased %></li>

@@ -33,7 +33,7 @@ app.get('/', userAuth.verifyToken, function(req, res, next){
 
   MongoClient.connect(url, function(err, client){
     const db = client.db(dbName);
-    const cursor = db.collection('customers2').find({})
+    const cursor = db.collection('customers').find({})
 
     //need to rewrite the getrevenue function to calculate from items in the database do it can update with new stuff
 
@@ -72,14 +72,6 @@ app.post('/login', (req, res) => {
   }
 })
 
-// mongoose.connect(
-//   url,
-//   {useUnifiedTopology: true, useNewUrlParser: true},
-//   (req, res) => {
-//     console.log("connected to the database with mongoose")
-//   }
-// )
-
 app.listen(PORT, function(){
   console.log("Server is running on port 3000")
 })
@@ -93,7 +85,6 @@ let revenue = 0;
 const getDataFrom = 2 //months ago
 const baseUrl = 'https://2ieb7j62xark0rjf.mojostratus.io'
 let currentDate
-// dbUtils.getAndCompareWithNew()
 getNewData()
 
 
@@ -107,21 +98,12 @@ async function getNewData(){  //this function gets all data from m2 and removes 
   const orders = await getData(`/rest/V1/orders?searchCriteria[filter_groups][0][filters][0][field]=created_at&searchCriteria[filter_groups][0][filters][0][value]=${dateFrom[0]}-${dateFrom[1]}-01 00:00:00&searchCriteria[filter_groups][0][filters][0][condition_type]=gt`) 
   const multiPurchaseCustData = await getMultiplePurchaseCustomerData(orders)  //get only customers by address who have made multiple purchases
   const organizedData = await organizeData(multiPurchaseCustData) //array of customers who have purchased multiple times with all of their purchases sorted
-  // console.log(organizedData[0].purchasedItems)
   const customerPurchasesArr = await comparePurchases(organizedData) //arr containing customers with multiple purchases and which products they have bought more than once
-  console.log(customerPurchasesArr[0].multiPurchasedItems)
   samePurchaseCustomers = await utils.filterSamePurchaseCustomers(customerPurchasesArr)  //filters out the customers who didnt purchase the same thing
   const filteredData = await compareDates(samePurchaseCustomers)  //check the difference in dates purchsed, THIS GIVES THE ACTUAL SUGGESTION
-  // revenue = await utils.getRevenue(filteredData)
   const arrayOfFilteredData = await utils.makeObjectintoArray(filteredData)
-
-  // await dbUtils.upsertMany(arrayOfFilteredData)
   await dbUtils.appendNewDataToMongo(arrayOfFilteredData)
-  // await dbUtils.getAndCompareWithNew(arrayOfFilteredData)
 
-  // await dbUtils.sendMany('ziptie', 'customers', arrayOfFilteredData)
-  // sendWithMongoose(arrayOfFilteredData)
-  // dbUtils.getAllFromDb('ziptie', 'customers')
   currentDate = new Date();  //create a timestamp of last data pull
   con('FINISHED', arrayOfFilteredData.length)
   return filteredData
@@ -131,9 +113,7 @@ async function getNewData(){  //this function gets all data from m2 and removes 
 async function getData(suffix){
   let response = await getDataWithAuth(`${baseUrl}${suffix}`)
   const result = []
-  // console.log(response.data.items[1].extension_attributes.shipping_assignments[0].shipping.address)
   await response.data.items.map(item => {
-    // console.log(item.state, item.status)
     if (item.state == 'complete'){
       result.push({
         name : item.billing_address.firstname,
