@@ -11,18 +11,17 @@ const utils = require('./utils')
 const userAuth = require('./userAuth')
 const dbUtils = require('./mongo')
 const MongoClient = require('mongodb').MongoClient;
-// const Customer = require('./model/User')
 var cookieParser = require('cookie-parser');
-// const mongoose = require('mongoose');
-// const { getRevenue } = require('./utils');
+var app = express();
 
 const url = 'mongodb+srv://admin:changeme@123@ziptie.auxwu.mongodb.net/ziptie?retryWrites=true&w=majority';
 const dbName = 'ziptie'
-var app = express();
+const col = 'customers'
+const client = new MongoClient(url, {poolSize: 50, useUnifiedTopology: true, useNewUrlParser: true});
 
 app.use(cors())
-app.use(express.static(__dirname + '/'));
 app.set('view engine','ejs');
+app.use(express.static(__dirname + '/'));
 app.use(bodyParser.urlencoded({
   extended: true
 }));
@@ -33,7 +32,7 @@ app.get('/', userAuth.verifyToken, function(req, res, next){
 
   MongoClient.connect(url, function(err, client){
     const db = client.db(dbName);
-    const cursor = db.collection('customers').find({})
+    const cursor = db.collection(col).find({})
 
     //need to rewrite the getrevenue function to calculate from items in the database do it can update with new stuff
 
@@ -70,6 +69,23 @@ app.post('/login', (req, res) => {
     console.log("PASSWORD IS INCORRECT")
     res.redirect('/login')
   }
+})
+
+
+app.post('/addNote/:custAddress', (req, res) => { // adds notes to customers
+  const filter = {address: req.params.custAddress}
+  const update = {
+    $set: {
+      notes: req.body.addNote
+    }
+  }
+  const options = {upsert:true}
+  MongoClient.connect(url, function(err, client){
+    const db = client.db(dbName);
+    const cursor = db.collection(col).findOneAndUpdate(filter, update, options)
+    res.redirect('/')
+  })
+  client.close()
 })
 
 app.listen(PORT, function(){
@@ -166,7 +182,8 @@ function comparePurchases(customersArr){
     customer.multiPurchasedItems = {}
     customer.purchasedItems.map(item => {
       if (item.sku === prevItem.sku && count < 1){ ////first time finding a duplicate purchase - if the skus are the same and we havent seen this item yet(count = 0)
-        if(prevItem.createdAt !== item.createdAt){  //if the items weren't bought at the same time
+        if(prevItem.createdAt.split(' ')[0] !== item.createdAt.split(' ')[0]){  //if the items weren't bought at the same time
+          // console.log(item.sku, prevItem.createdAt, item.createdAt)
           customer.multiPurchasedItems[item.sku] = {
             productName: item.productName,
             sku: item.sku,
@@ -209,35 +226,15 @@ function comparePurchases(customersArr){
   return customersArr
 }
 
-
-function compareDates(customers){
+////this needs to change to use  purchaseInstances and suggest only the suggested weeks we want available (round to nearest in an array of avail)
+function compareDates(customers){  
   customers.map(customer => {
     for (item in customer.multiPurchasedItems) {
-      let prevDate = [];
-      for (date in customer.multiPurchasedItems[item].datesPurchased){
-        const dateArr = customer.multiPurchasedItems[item].datesPurchased[date].split(' ')
-        const dateNoTimeArr = dateArr[0].split('-')
-        if(dateNoTimeArr[0] == prevDate[0] && dateNoTimeArr[1] == prevDate[1] && prevDate.length > 0){  //if the purchase was on the same day
-          if(dateNoTimeArr[2] == prevDate[2]){
-            // console.log('SAMEDAY SAME PURCHASE')
-            const dateIndex = customer.multiPurchasedItems[item].datesPurchased.indexOf(date)
-            if (dateIndex > -1) {
-              customer.multiPurchasedItems[item].datesPurchased.splice(dateIndex, 1);
-            }
-
-          } else {
-            const daysApart = dateNoTimeArr[2] - prevDate[2]
-            customer.multiPurchasedItems[item].suggest = [daysApart, 'day']
-          }
-        } else if (dateNoTimeArr[0] == prevDate[0] && dateNoTimeArr[1] !== prevDate[1] && prevDate.length > 0){  //if the year is the same and the month is different
-          const monthsApart = dateNoTimeArr[1] - prevDate[1]
-          customer.multiPurchasedItems[item].suggest = [monthsApart, 'month']
-        } else if (dateNoTimeArr[0] !== prevDate[0] && prevDate.length > 0){  //if the year is different
-          const yearsApart = dateNoTimeArr[0] - prevDate[0]
-          customer.multiPurchasedItems[item].suggest = [yearsApart, 'year']
-        } else {
-        }
-        prevDate = dateNoTimeArr
+      if(customer.multiPurchasedItems[item].purchaseInstances.length > 1){  //if there are more than one purchase instances of the same item
+        //need to put purchases made on the same day in the same purchase instance
+        customer.multiPurchasedItems[item].suggest = true
+      } else {
+        customer.multiPurchasedItems[item].suggest = false
       }
     }
   })
@@ -257,7 +254,8 @@ function filterOutByDate(customers){
         suggestedItems : {}
       }
       for(item in customers[customer].multiPurchasedItems){  //loop through multi purchases
-        if (customers[customer].multiPurchasedItems[item].suggest == undefined || customers[customer].multiPurchasedItems[item].suggest == null || customers[customer].multiPurchasedItems[item].suggest == {}) {  //if there is no suggestion in the object
+        // console.log('ITEM', customers[customer].multiPurchasedItems[item])
+        if (customers[customer].multiPurchasedItems[item].suggest == false || customers[customer].multiPurchasedItems[item].suggest == undefined || customers[customer].multiPurchasedItems[item].suggest == null || customers[customer].multiPurchasedItems[item].suggest == {}) {  //if there is no suggestion in the object
         } else {
           newCustomerObj.suggestedItems[item] = customers[customer].multiPurchasedItems[item]
           result[customers[customer].address] = newCustomerObj

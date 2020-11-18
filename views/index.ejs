@@ -10,6 +10,7 @@
     <p class="logged-in-p">You are currently logged in</p>
     <p style="font-style: italic;">You will be periodically logged out for security reasons.</p>
   </div>
+  <button class="testbtn">test</button>
   <div class="main-container">
     <% if (customerPurchasesArr.length < 1){ %>
       <p class="loading-p">GETTING DATA FROM MAGENTO 2, PLEASE RELOAD PAGE IN A MOMENT...</p>
@@ -30,6 +31,10 @@
         <% for(customer in customerPurchasesArr) { %>
           <ul class="single-customer">
             <li class="address"><%= customerPurchasesArr[customer].address %>, <%= customerPurchasesArr[customer].addressOthers.city %>, <%= customerPurchasesArr[customer].addressOthers.region %> <%= customerPurchasesArr[customer].addressOthers.postcode %></li>
+            <form action="/addNote/<%= customerPurchasesArr[customer].address %>" method="post">
+              <input name="addNote" type="text" placeholder="Add A Note">
+              <input type="submit" value="ADD NOTE">
+            </form>
             <li>PHONE: <%= customerPurchasesArr[customer].addressOthers.telephone %></li>
             <li><%= customerPurchasesArr[customer].name %></li>
             <li><%= customerPurchasesArr[customer].email %></li>
@@ -57,6 +62,7 @@
                     </ul>
                   </li>
                   <li><span style="font-weight: 600;">Suggested Subscription:</span> <%= customerPurchasesArr[customer].suggestedItems[item].suggest %></li>
+                  <li>ADMIN NOTES: <%= customerPurchasesArr[customer].notes %></li>
                 </ul>
                 <br>
               <% } %>
@@ -67,5 +73,6 @@
         <% }
       } %>
     </div>
+    <script src="../public/script.js"></script>
 </body>
 </html>

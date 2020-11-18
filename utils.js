@@ -1,3 +1,50 @@
+function getSuggestions(data){
+  data.map(customer => {
+    customer.suggestedItems.map(item => {
+      item.purchaseInstances.sort(compareDates)  //sort the dates for comparing
+      let prevDate = null;
+      const intervalsArray = [] //will fill with suggested intervals, so if there were more than two purchases, we need to compare them and find the most suitable option
+
+      item.purchaseInstances.map(instance => {
+        const currDate = new Date(`${instance.datesPurchased.split(' ')[0]}T${instance.datesPurchased.split(' ')[1]}`)
+        if(prevDate !== null){
+          const diff = Math.floor(currDate.getTime() - prevDate.getTime());
+          const day = 1000 * 60 * 60 * 24;
+          const days = Math.floor(diff/day);
+          const suggestedInterval = findSuggestedInterval(days)
+          // console.log("THIS", currDate, prevDate, days, suggestedInterval)
+          intervalsArray.push(suggestedInterval)
+        }
+        prevDate = currDate
+      })
+      item.suggest = intervalsArray
+    })
+  })
+  return data
+}
+
+function findSuggestedInterval(interval) {
+  const intervalArray = [7, 14, 21, 28, 42, 56, 84]
+  const weekSuggestArray = [1, 2, 3, 4, 6, 8, 12]
+  const inDays =  intervalArray.reduce(function(prev, curr) {  //uses the psiArr to find the nearest psi to result from maths
+    return (Math.abs(curr - interval) < Math.abs(prev - interval) ? curr : prev);
+  });
+  // get index of in days and return the same index of weeks
+  return weekSuggestArray[intervalArray.indexOf(inDays)]
+}
+
+function compareDates(a, b) {
+  const itemA = a.datesPurchased;
+  const itemB = b.datesPurchased;
+  let comparison = 0;
+  if (itemA > itemB) {
+    comparison = 1;
+  } else if (itemA < itemB) {
+    comparison = -1;
+  }
+  return comparison;
+}
+
 const add = (a,b) => {
   return a+b
 }
@@ -22,13 +69,6 @@ function makeObjectintoArray(data){
   return result
 }
 
-// function makeObjectintoArray(data){
-//   const result = [];
-//   for (obj in data){
-//     result.push(data[obj])
-//   }
-//   return result
-// }
 
 function filterSamePurchaseCustomers(data){
   const filteredData = data.filter(customer => {
@@ -143,8 +183,6 @@ function getRevenue(data){
         }
         continue
       }
-
-
       let suggestedQty;
       const mean = getMean(data[customer].suggestedItems[item].qtyOrdered)  // get the mean of array of qtypurchased
       if (mean[0] === undefined){  //get mean will return undefined if there is no item with more than 1 occurance
@@ -153,15 +191,11 @@ function getRevenue(data){
       } else {
         suggestedQty = mean[0]
       }
-      
-      
-      
       const singlePurchaseRevenue = suggestedQty * data[customer].suggestedItems[item].price
       const singlePurchaseRevenuePerMonth = getSinglePurchaseRevenuePerMonth(data[customer].suggestedItems[item].suggest, singlePurchaseRevenue)
       data[customer].suggestedItems[item].singlePurchaseRevenuePerMonth = singlePurchaseRevenuePerMonth
       total += singlePurchaseRevenuePerMonth
       // console.log(data[customer])
-
     }
   }
   console.log('TOTAL', total)
@@ -218,5 +252,6 @@ module.exports = {
   sendNotifications : sendNotifications,
   calculateDateFrom : calculateDateFrom,
   getRevenue : getRevenue,
-  makeObjectintoArray: makeObjectintoArray
+  makeObjectintoArray: makeObjectintoArray,
+  getSuggestions: getSuggestions
 }

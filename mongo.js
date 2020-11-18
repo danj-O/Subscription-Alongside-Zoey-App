@@ -1,4 +1,5 @@
 const MongoClient = require('mongodb').MongoClient;
+const utils = require('./utils')
 
 testArray = [{
   address: "1000 W. Vista Bonita Drive Suite B101",
@@ -64,7 +65,7 @@ async function appendNewDataToMongo(m2DataArray){  //compare the two sets of dat
     await dbData.forEach(async dbCustomer => {  //loop through db data
       
       if (m2DataArray.some(m2Cust => m2Cust.address == dbCustomer.address)){  //adds any customers from the database that dont exist in the new data.
-        await console.log("customer exists in new data")
+        // await console.log("customer exists in new data")
       } else {
         await console.log('added an customer who has already been logged before but wasnt found in the new data', dbCustomer.address)
       }
@@ -76,11 +77,11 @@ async function appendNewDataToMongo(m2DataArray){  //compare the two sets of dat
           if (JSON.stringify(m2Customer) == JSON.stringify(dbCustomer)){ //are the new items exactly the same as the db items?  THIS ISNT QUITE RIGHT!!! but maybe doesnt matter
             console.log("customer hasn't made any new purchases")
           } else {
-            console.log('needs appending')
+            // console.log('needs appending')
 
             await dbCustomer.suggestedItems.forEach(async dbItem => {  //loop through db sugg items
               if(await m2Customer.suggestedItems.some(m2Item => m2Item.sku == dbItem.sku)){  //if the m2 customer items contains the current dbitem
-                console.log('item exists, checking if there were new purchases...')
+                // console.log('item exists, checking if there were new purchases...')
                 const m2Item = await m2Customer.suggestedItems.find(item => item.sku == dbItem.sku)
 
                 await dbItem.purchaseInstances.forEach(async dbInstance => { //loop through db purchase instacnes of given item
@@ -101,7 +102,11 @@ async function appendNewDataToMongo(m2DataArray){  //compare the two sets of dat
         }
       })
     })
-    await upsertMany(m2DataArray, dataB, col)
+    //get the suggested interval for all data before putting back into db
+    const dataWithSuggestions = utils.getSuggestions(m2DataArray)
+
+
+    await upsertMany(dataWithSuggestions, dataB, col)
   } catch (err){
     console.log("ERROR", err)
   } finally {
@@ -145,50 +150,6 @@ async function upsertMany(dataArr, dataB, col){
   }
 }
 
-
-
-
-
-
-// async function insertMany(dataArr){
-//   try {
-//     await client.connect();
-//     const database = client.db('ziptie');
-//     const collection = database.collection('customers2');
-
-//     // this option prevents additional documents from being inserted if one fails
-//     const options = {};
-//     for(i=0;i<dataArr.length;i++){
-//       const result = collection.insertOne(dataArr[i])
-//       console.log(`${result} documents were inserted`);
-//     }
-//     // const result = await collection.insertMany(dataArr, options);
-//   } finally {
-//     // await client.close();
-//   }
-// }
-
-// async function getAllFromDb(db, col){
-//   const response = [];
-//   try {
-//     await client.connect();
-//     const database = client.db(db);
-//     const collection = database.collection(col);
-
-//     // this option prevents additional documents from being inserted if one fails
-//     // const options = { upsert: true };
-//     const cursor = await collection.find({})
-//     await cursor.forEach(function(doc){
-//       response.push(doc)
-//       // console.log(doc)
-//     })
-//     return response
-//   } finally {
-//     await client.close();
-//   }
-//   // console.log(typeof(response))
-//   // return response
-// }
 
 
 
