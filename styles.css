@@ -21,7 +21,7 @@ h1{
 }
 
 .main-container{
-  margin: 20px;
+  /* margin: 20px; */
 }
 .loading-p{
   font-size: 1.4em;
@@ -49,4 +49,22 @@ h1{
 .single-customer-products-list {
   margin-left: 50px;
 
+}
+
+
+.tab-nav{
+  background: #000;
+  /* margin: 20px; */
+  width: 100%;
+  height: auto;
+  padding: 20px;
+}
+.tab {
+  padding: 5px 10px;
+  background-color: lightcoral;
+  margin: 3px;
+  text-decoration: none;
+}
+.tab:hover{
+  background-color: lightsalmon;
 }

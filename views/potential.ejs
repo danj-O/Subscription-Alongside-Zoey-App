@@ -2,14 +2,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="./styles.css" type="text/css">
-  <title>Document</title>
+  <title>Contacted Customers</title>
 </head>
 <body>
   <% 
     
   %>
   <div class="header">
-    <h1>List of Suggestions</h1>
+    <h1>List of Already Contacted Customers</h1>
     <p class="logged-in-p">You are currently logged in</p>
     <p style="font-style: italic;">You will be periodically logged out for security reasons.</p>
   </div>
@@ -20,16 +20,8 @@
     <% if (customerPurchasesArr.length < 1){ %>
       <p class="loading-p">GETTING DATA FROM MAGENTO 2, PLEASE RELOAD PAGE IN A MOMENT...</p>
       <% } else { %>
-        <div class="top-info-box">
-          <p>There are <span style="font-weight: 600; color: green;"><%= Object.keys(customerPurchasesArr).length %></span> customers who have purchased the same item multiple times within the last <span style="font-weight: 600; color: green;"><%= getDataFrom %> months</span> and might be interested in signing up for a subscription.</p>
-          <p>Expected revenue per month from subscriptions: <span style="font-weight: 600; color: green;">$<%= revenue %></span></p>
-          <p><span style="font-weight: 600;">Last Data Pull:</span>  <%= currentDate %></p>
-          <p>"Times purchased" lumps all purchases of same item by same address ON THE SAME DAY together so you don't get every day subscription suggestions.</p>
-          <p>The minimum interval between purchases in order to trigger a suggestion 1 week.</p>
-        </div>
-  
         <header>
-          <%- include('header.ejs', {data: customerPurchasesArr}) %>
+          <%- include('header.ejs') %>
         </header>
 
         
@@ -37,19 +29,8 @@
           <ul class="single-customer">
             <li class="address"><%= customerPurchasesArr[customer].address %>, <%= customerPurchasesArr[customer].addressOthers.city %>, <%= customerPurchasesArr[customer].addressOthers.region %> <%= customerPurchasesArr[customer].addressOthers.postcode %></li>
             <form action="/addNote/<%= customerPurchasesArr[customer].address %>" method="post">
-              <input name="addNote" type="text" placeholder="Add A Note To The Customer">
+              <input name="addNote" type="text" placeholder="Add A Note">
               <input type="submit" value="ADD NOTE">
-            </form>
-            <form action="/changeStatus/<%= customerPurchasesArr[customer].address %>" method="POST">
-              <select name="status" id="status">
-                <option value="new">--New Cust --</option>
-                <option value="contacted">Contacted</option>
-                <option value="potential">Potential</option>
-                <option value="paused">Paused</option>
-                <option value="active">Active</option>
-                <option value="not-interested">Not Interested</option>
-              </select>
-              <input type="submit" value="CHANGE STATUS">
             </form>
             <li>CURRENT STATUS: <%= customerPurchasesArr[customer].status %></li>
             <li>PHONE: <%= customerPurchasesArr[customer].addressOthers.telephone %></li>

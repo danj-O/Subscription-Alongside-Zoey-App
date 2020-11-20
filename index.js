@@ -32,23 +32,85 @@ app.get('/', userAuth.verifyToken, function(req, res, next){
 
   MongoClient.connect(url, function(err, client){
     const db = client.db(dbName);
-    const cursor = db.collection(col).find({})
-
-    //need to rewrite the getrevenue function to calculate from items in the database do it can update with new stuff
-
+    const cursor = db.collection(col).find({$or:[{status: 'new'}, {status: undefined}]})
     cursor.forEach((doc, err)=> {
       resultArr.push(doc)
     }, function(){
       client.close()
-
-      //REVENUE FUNC HAS SOMETHING WRONG WITH IT, it calculates less revenue when we get more data???
-      // revenue = utils.getRevenue(resultArr)  //need to get the total revenue here instead of when we originally get the data
       revenue = 0
-      res.render('index.ejs', { 
+      res.render('tabTemplate.ejs', { 
         customerPurchasesArr: resultArr,
         revenue: revenue,
         getDataFrom: getDataFrom,
-        currentDate: currentDate 
+        currentDate: currentDate,
+        pageTitle: 'New Subscription Suggestions',
+        pagePath: 'new'
+      })
+    })
+  })
+})
+app.get('/contacted', userAuth.verifyToken, function(req, res, next){
+  const resultArr = []
+
+  MongoClient.connect(url, function(err, client){
+    const db = client.db(dbName);
+    const cursor = db.collection(col).find({ status: 'contacted' })
+    cursor.forEach((doc, err)=> {
+      resultArr.push(doc)
+    }, function(){
+      client.close()
+      revenue = 0
+      res.render('tabTemplate.ejs', { 
+        customerPurchasesArr: resultArr,
+        revenue: revenue,
+        getDataFrom: getDataFrom,
+        currentDate: currentDate,
+        pageTitle: 'Contacted Customers',
+        pagePath: 'contacted'
+      })
+    })
+  })
+})
+app.get('/potential', userAuth.verifyToken, function(req, res, next){
+  const resultArr = []
+
+  MongoClient.connect(url, function(err, client){
+    const db = client.db(dbName);
+    const cursor = db.collection(col).find({ status: 'potential' })
+    cursor.forEach((doc, err)=> {
+      resultArr.push(doc)
+    }, function(){
+      client.close()
+      revenue = 0
+      res.render('tabTemplate.ejs', { 
+        customerPurchasesArr: resultArr,
+        revenue: revenue,
+        getDataFrom: getDataFrom,
+        currentDate: currentDate,
+        pageTitle: 'Potential Subscriptions',
+        pagePath: 'potential'
+      })
+    })
+  })
+})
+app.get('/active', userAuth.verifyToken, function(req, res, next){
+  const resultArr = []
+
+  MongoClient.connect(url, function(err, client){
+    const db = client.db(dbName);
+    const cursor = db.collection(col).find({ status: 'active' })
+    cursor.forEach((doc, err)=> {
+      resultArr.push(doc)
+    }, function(){
+      client.close()
+      revenue = 0
+      res.render('tabTemplate.ejs', { 
+        customerPurchasesArr: resultArr,
+        revenue: revenue,
+        getDataFrom: getDataFrom,
+        currentDate: currentDate,
+        pageTitle: 'Active Subscriptions',
+        pagePath: 'active'
       })
     })
   })
@@ -70,9 +132,46 @@ app.post('/login', (req, res) => {
     res.redirect('/login')
   }
 })
+// app.post('/filterData/:filter', userAuth.verifyToken, (req, res) => {
+//   const resultArr = []
+//   MongoClient.connect(url, function(err, client){
+//     const db = client.db(dbName);
+//     const cursor = db.collection(col).find({ status: req.params.filter })
+//     cursor.forEach((doc, err)=> {
+//       // if(doc.status = 'contacted'){
+//         resultArr.push(doc)
+//       // }
+//     }, function(){
+//       client.close()
+//       revenue = 0
+//       res.render('tabTemplate.ejs', { 
+//         customerPurchasesArr: resultArr,
+//         revenue: revenue,
+//         getDataFrom: getDataFrom,
+//         currentDate: currentDate 
+//       })
+//     })
+//   })
+// })
 
+app.post('/changeStatus/:custAddress', userAuth.verifyToken, (req, res) => { //adds a status to cust object that will decide which tab it goes into
+  console.log(req.body.status, req.params)
+  const filter = {address: req.params.custAddress}
+  const update = {
+    $set: {
+      status: req.body.status
+    }
+  }
+  const options = {upsert:true}
+  MongoClient.connect(url, function(err, client){
+    const db = client.db(dbName);
+    const cursor = db.collection(col).findOneAndUpdate(filter, update, options)
+    res.redirect(`/${req.body.status}`)
+  })
+  client.close()
+})
 
-app.post('/addNote/:custAddress', (req, res) => { // adds notes to customers
+app.post('/addNote/:custAddress', userAuth.verifyToken, (req, res) => { // adds notes to customers
   const filter = {address: req.params.custAddress}
   const update = {
     $set: {
@@ -83,7 +182,7 @@ app.post('/addNote/:custAddress', (req, res) => { // adds notes to customers
   MongoClient.connect(url, function(err, client){
     const db = client.db(dbName);
     const cursor = db.collection(col).findOneAndUpdate(filter, update, options)
-    res.redirect('/')
+    res.redirect(`/${req.body.pagePath}`)
   })
   client.close()
 })
@@ -105,13 +204,14 @@ getNewData()
 
 
 async function getNewData(){  //this function gets all data from m2 and removes any items that are repeats  in the db
-  // const subscriptions = await getDataWithAuth(`${baseUrl}/rest/V1/subscription/search?searchCriteria[pageSize]=1`)
+  const subscriptions = await getDataWithAuth(`${baseUrl}/rest/V1/subscription/search?searchCriteria[pageSize]=0`)
   // console.log('subscriptions', subscriptions.data)
 
   await console.log('Started getting data, this will take some time...')
   const dateFrom = utils.calculateDateFrom(getDataFrom)
 
   const orders = await getData(`/rest/V1/orders?searchCriteria[filter_groups][0][filters][0][field]=created_at&searchCriteria[filter_groups][0][filters][0][value]=${dateFrom[0]}-${dateFrom[1]}-01 00:00:00&searchCriteria[filter_groups][0][filters][0][condition_type]=gt`) 
+  // console.log(orders[0])
   const multiPurchaseCustData = await getMultiplePurchaseCustomerData(orders)  //get only customers by address who have made multiple purchases
   const organizedData = await organizeData(multiPurchaseCustData) //array of customers who have purchased multiple times with all of their purchases sorted
   const customerPurchasesArr = await comparePurchases(organizedData) //arr containing customers with multiple purchases and which products they have bought more than once

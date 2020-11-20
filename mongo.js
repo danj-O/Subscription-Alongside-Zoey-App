@@ -65,6 +65,7 @@ async function appendNewDataToMongo(m2DataArray){  //compare the two sets of dat
     await dbData.forEach(async dbCustomer => {  //loop through db data
       
       if (m2DataArray.some(m2Cust => m2Cust.address == dbCustomer.address)){  //adds any customers from the database that dont exist in the new data.
+
         // await console.log("customer exists in new data")
       } else {
         await console.log('added an customer who has already been logged before but wasnt found in the new data', dbCustomer.address)
