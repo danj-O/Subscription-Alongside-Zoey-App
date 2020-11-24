@@ -53,6 +53,9 @@ const uri = 'mongodb+srv://admin:changeme@123@ziptie.auxwu.mongodb.net/ziptie?re
 const client = new MongoClient(uri, {poolSize: 50, useUnifiedTopology: true, useNewUrlParser: true});
 
 async function appendNewDataToMongo(m2DataArray){  //compare the two sets of data, append additions to db  ADDING THE DB DATA TO THE NEW DATA
+  m2DataArray.map(customer => {customer.suggestedItems.map(item => {
+    item.status = 'new'
+  })})
   const dataB = 'ziptie'
   const col = 'customers'
   // m2DataArray = testArray
@@ -72,6 +75,10 @@ async function appendNewDataToMongo(m2DataArray){  //compare the two sets of dat
       }
 
       await m2DataArray.map(async m2Customer => {  //loop through new data and comare to the alreaady existing customer
+        // m2Customer.suggestedItems.map(item => {
+        //   item.status = 'new'
+        // })
+        // console.log(m2Customer.suggestedItems)
         if(m2Customer.address == dbCustomer.address){  //find the same customer in both arrays
           delete dbCustomer._id  //delete thid because new items don't have an item until mdb assigns them one  THIS DOESNT MATTER IF BELOW DOESNT WORK
           // console.log(m2Customer, dbCustomer)
@@ -82,8 +89,9 @@ async function appendNewDataToMongo(m2DataArray){  //compare the two sets of dat
 
             await dbCustomer.suggestedItems.forEach(async dbItem => {  //loop through db sugg items
               if(await m2Customer.suggestedItems.some(m2Item => m2Item.sku == dbItem.sku)){  //if the m2 customer items contains the current dbitem
-                // console.log('item exists, checking if there were new purchases...')
                 const m2Item = await m2Customer.suggestedItems.find(item => item.sku == dbItem.sku)
+                m2Item.status = dbItem.status;  //carry over status and items from old db data if it exists
+                m2Item.notes = dbItem.notes;
 
                 await dbItem.purchaseInstances.forEach(async dbInstance => { //loop through db purchase instacnes of given item
                   if (await m2Item.purchaseInstances.some(m2Instance => m2Instance.datesPurchased == dbInstance.datesPurchased)){  //compare the items purchase instances dates
@@ -93,6 +101,7 @@ async function appendNewDataToMongo(m2DataArray){  //compare the two sets of dat
                   }
                 })
               } else {  //if the customer doesnt ciontain that item
+                dbItem.status = 'new'
                 await m2Customer.suggestedItems.push(dbItem)
                 await console.log('old item appended to new customer data: ', m2Customer.suggestedItems, dbItem)
               }

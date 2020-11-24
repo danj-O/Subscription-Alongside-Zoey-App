@@ -61,6 +61,7 @@ function makeObjectintoArray(data){
     }
     const newItemsArr = []
     for(itemObj in data[obj].suggestedItems){
+      // data[obj].suggestedItems[itemObj].status = ''
       newObj.suggestedItems.push(data[obj].suggestedItems[itemObj])
     }
     result.push(newObj)

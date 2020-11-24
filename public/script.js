@@ -1,3 +1,3 @@
-document.querySelector(".new-tab-btn").addEventListener('click', () =>{
-  console.log("clicked")
-})
+// document.querySelector(".new-tab-btn").addEventListener('click', () =>{
+//   console.log("clicked")
+// })

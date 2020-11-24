@@ -15,71 +15,97 @@
   </div>
 
   <header>
-    <%- include('header.ejs') %>
+    <%- include('header.ejs', {pagePath: pagePath}) %>
   </header>
 
 
   <div class="main-container">
     <% if (customerPurchasesArr.length < 1){ %>
-      <p class="loading-p">THERE ARE NO <%= pageTitle %> AT THIS TIME <br> -OR- <br> GETTING DATA FROM MAGENTO 2, PLEASE RELOAD PAGE IN A MOMENT...</p>
+      <p class="loading-p">THERE ARE NO <%= pageTitle %> AT THIS TIME.</p>
       <% } else { %>
 
         
-        <% for(customer in customerPurchasesArr) { %>
-          <ul class="single-customer">
-            <li class="address"><%= customerPurchasesArr[customer].address %>, <%= customerPurchasesArr[customer].addressOthers.city %>, <%= customerPurchasesArr[customer].addressOthers.region %> <%= customerPurchasesArr[customer].addressOthers.postcode %></li>
-            <form action="/addNote/<%= customerPurchasesArr[customer].address %>" method="post">
-              <input name="addNote" type="text" placeholder="Add A Note">
-              <input type="submit" value="ADD NOTE">
-              <input type="hidden" name="pagePath" value="<%= pagePath %>">
-            </form>
-            <form action="/changeStatus/<%= customerPurchasesArr[customer].address %>" method="POST">
-              <select name="status" id="status">
-                <option value="new">--New Cust --</option>
-                <option value="contacted">Contacted</option>
-                <option value="potential">Potential</option>
-                <option value="paused">Paused</option>
-                <option value="not-interested">Not Interested</option>
-              </select>
-              <!-- <input type="hidden" name="pagePath" value=`<%= pagePath %>`> -->
-              <input type="submit" value="CHANGE STATUS">
-            </form>
-            <li>CURRENT STATUS: <%= customerPurchasesArr[customer].status %></li>
-            <li>PHONE: <%= customerPurchasesArr[customer].addressOthers.telephone %></li>
-            <li><%= customerPurchasesArr[customer].name %></li>
-            <li><%= customerPurchasesArr[customer].email %></li>
-            <li> Items Purchased Multiple Times: 
-              <% for(item in customerPurchasesArr[customer].suggestedItems){ %>
-                <ul class="single-customer-products-list">
-                  <br>
-                  <li><span style="font-weight: 600;">Product:</span> <%= customerPurchasesArr[customer].suggestedItems[item].productName %></li>
-                  <li>SKU: <%= customerPurchasesArr[customer].suggestedItems[item].sku %></li>
-                  <li>Price: $<%= customerPurchasesArr[customer].suggestedItems[item].price %></li>
-                  <li>Times Purchased: <%= customerPurchasesArr[customer].suggestedItems[item].timesPurchased %></li>
-                  <li>Qty Ordered: <%= customerPurchasesArr[customer].suggestedItems[item].qtyOrdered %></li>
-                  <li>Dates Ordered: <%= customerPurchasesArr[customer].suggestedItems[item].datesPurchased %></li>
-                  <li>
-                    <ul style="margin-left: 50px;">
-                      Purchase Instances: 
-                      <% for(instance in customerPurchasesArr[customer].suggestedItems[item].purchaseInstances) { %>
-                        <li>
-                          qtyOrdered: <%= customerPurchasesArr[customer].suggestedItems[item].purchaseInstances[instance].qtyOrdered %>
-                        </li>
-                        <li>
-                          datesPurchased:<%= customerPurchasesArr[customer].suggestedItems[item].purchaseInstances[instance].datesPurchased %>
-                        </li>
-                      <% } %>
-                    </ul>
-                  </li>
-                  <li><span style="font-weight: 600;">Suggested Subscription:</span> <%= customerPurchasesArr[customer].suggestedItems[item].suggest %></li>
-                  <li>ADMIN NOTES: <%= customerPurchasesArr[customer].notes %></li>
-                </ul>
-                <br>
-              <% } %>
-            </li>
-          </ul>
-          <br>
+        <% for(customer in customerPurchasesArr) { 
+          var custInstancesArr = customerPurchasesArr[customer].suggestedItems.filter(item =>{
+            return item.status == pagePath
+          })
+          if (custInstancesArr.length <= 0){
+            %>
+            <h2>No records of <%= pagePath %> at this time.</h2>
+            <%
+          } else{ %>
+            <div class="single-customer">
+  
+              <p class="address"><%= customerPurchasesArr[customer].address %>, <%= customerPurchasesArr[customer].addressOthers.city %>, <%= customerPurchasesArr[customer].addressOthers.region %> <%= customerPurchasesArr[customer].addressOthers.postcode %></p>
+              
+              <div class="customer-box">
+                <div class="customer-info">
+                  <p>PHONE: <%= customerPurchasesArr[customer].addressOthers.telephone %></p>
+                  <p><%= customerPurchasesArr[customer].name %></p>
+                  <p><%= customerPurchasesArr[customer].email %></p>
+                </div>
+    
+                <div class="cust-form">
+                  <p>CUSTOMER NOTES: <%= customerPurchasesArr[customer].notes %></p>
+                  <form action="/addNote/<%= customerPurchasesArr[customer].address %>" method="post">
+                    <textarea name="addNote" type="text" placeholder="Add A Note About The Customer"></textarea>
+                    <input type="submit" value="ADD NOTE">
+                    <input type="hidden" name="pagePath" value="<%= pagePath %>">
+                  </form>
+                </div>
+              </div>
+  
+              <div class="purchased-items">
+                <h4>This customer has made these purchases that triggered a suggestion:</h4>
+                <% for(item in customerPurchasesArr[customer].suggestedItems){ %>
+                  <div class="single-customer-purchased-item">
+                    <div class="single-customer-purchase">
+                      <p class="status-p">STATUS: <span class="status-span"><%= customerPurchasesArr[customer].suggestedItems[item].status %></span></p>
+                      <p><span style="font-weight: 600;">Product:</span> <%= customerPurchasesArr[customer].suggestedItems[item].productName %></p>
+                      <p>SKU: <%= customerPurchasesArr[customer].suggestedItems[item].sku %></p>
+                      <p>Price: $<%= customerPurchasesArr[customer].suggestedItems[item].price %></p>
+                      <p>Times Purchased: <%= customerPurchasesArr[customer].suggestedItems[item].timesPurchased %></p>
+                      <div>
+                          <h4>Purchase Instances: </h4>
+                          <% for(instance in customerPurchasesArr[customer].suggestedItems[item].purchaseInstances) { %>
+                            <p>qtyOrdered: <%= customerPurchasesArr[customer].suggestedItems[item].purchaseInstances[instance].qtyOrdered %></p>
+                            <p>datesPurchased:<%= customerPurchasesArr[customer].suggestedItems[item].purchaseInstances[instance].datesPurchased %></p>
+                          <% } %>
+                      </div>
+                      <p><span style="font-weight: 600;">Suggested Subscription:</span> <%= customerPurchasesArr[customer].suggestedItems[item].suggest %></p>
+                    </div>
+    
+                    <div class="single-purchase-edit-box">
+                      <form action="/changeStatus/<%= customerPurchasesArr[customer].address %>" method="POST">
+                        <select name="status" id="status">
+                          <option value="new">--New Suggestion --</option>
+                          <option value="contacted">Contacted</option>
+                          <option value="potential">Potential</option>
+                          <option value="paused">Paused</option>
+                          <option value="not-interested">Not Interested</option>
+                        </select>
+                        <input type="hidden" name="purchaseSku" value="<%= customerPurchasesArr[customer].suggestedItems[item].sku %>">
+                        <input type="submit" value="CHANGE STATUS">
+                      </form>
 
+                      <p><span style="font-weight: 600;">NOTES:</span> <%= customerPurchasesArr[customer].suggestedItems[item].notes %></p>
+                      
+                      <form action="/addNote/<%= customerPurchasesArr[customer].address %>" method="post">
+                        <textarea name="addNote" type="text" placeholder="<%=  %>Add A Note About The Purchase <%= customerPurchasesArr[customer].suggestedItems[item].notes %>"></textarea>
+                        <input type="submit" value="ADD NOTE">
+                        <input type="hidden" name="pagePath" value="<%= pagePath %>">
+                        <input type="hidden" name="purchaseSku" value="<%= customerPurchasesArr[customer].suggestedItems[item].sku %>">
+                      </form>
+                    </div>
+                  </div>
+                <% } %>
+              </div>
+            </div>
+
+          <%}
+        %>
+
+          <br>
         <% }
       } %>
     </div>

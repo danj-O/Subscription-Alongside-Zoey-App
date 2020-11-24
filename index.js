@@ -32,7 +32,10 @@ app.get('/', userAuth.verifyToken, function(req, res, next){
 
   MongoClient.connect(url, function(err, client){
     const db = client.db(dbName);
-    const cursor = db.collection(col).find({$or:[{status: 'new'}, {status: undefined}]})
+    const cursor = db.collection(col).find({
+      "suggestedItems.status": 'new'
+      // $or:[{status: 'new'}, {status: undefined}]
+    })
     cursor.forEach((doc, err)=> {
       resultArr.push(doc)
     }, function(){
@@ -54,7 +57,9 @@ app.get('/contacted', userAuth.verifyToken, function(req, res, next){
 
   MongoClient.connect(url, function(err, client){
     const db = client.db(dbName);
-    const cursor = db.collection(col).find({ status: 'contacted' })
+    const cursor = db.collection(col).find({ 
+      "suggestedItems.status": 'contacted' 
+    })
     cursor.forEach((doc, err)=> {
       resultArr.push(doc)
     }, function(){
@@ -76,7 +81,9 @@ app.get('/potential', userAuth.verifyToken, function(req, res, next){
 
   MongoClient.connect(url, function(err, client){
     const db = client.db(dbName);
-    const cursor = db.collection(col).find({ status: 'potential' })
+    const cursor = db.collection(col).find({
+      "suggestedItems.status": 'potential'
+      })
     cursor.forEach((doc, err)=> {
       resultArr.push(doc)
     }, function(){
@@ -98,7 +105,9 @@ app.get('/active', userAuth.verifyToken, function(req, res, next){
 
   MongoClient.connect(url, function(err, client){
     const db = client.db(dbName);
-    const cursor = db.collection(col).find({ status: 'active' })
+    const cursor = db.collection(col).find({
+      "suggestedItems.status": 'active'
+    })
     cursor.forEach((doc, err)=> {
       resultArr.push(doc)
     }, function(){
@@ -132,57 +141,49 @@ app.post('/login', (req, res) => {
     res.redirect('/login')
   }
 })
-// app.post('/filterData/:filter', userAuth.verifyToken, (req, res) => {
-//   const resultArr = []
-//   MongoClient.connect(url, function(err, client){
-//     const db = client.db(dbName);
-//     const cursor = db.collection(col).find({ status: req.params.filter })
-//     cursor.forEach((doc, err)=> {
-//       // if(doc.status = 'contacted'){
-//         resultArr.push(doc)
-//       // }
-//     }, function(){
-//       client.close()
-//       revenue = 0
-//       res.render('tabTemplate.ejs', { 
-//         customerPurchasesArr: resultArr,
-//         revenue: revenue,
-//         getDataFrom: getDataFrom,
-//         currentDate: currentDate 
-//       })
-//     })
-//   })
-// })
+
 
 app.post('/changeStatus/:custAddress', userAuth.verifyToken, (req, res) => { //adds a status to cust object that will decide which tab it goes into
-  console.log(req.body.status, req.params)
-  const filter = {address: req.params.custAddress}
+  console.log(req.body.status, req.params, req.body.purchaseSku, typeof(req.body.purchaseSku))
+  // const filter = {"address": req.params.custAddress}
+  const filter = {"address": req.params.custAddress, "suggestedItems.sku": req.body.purchaseSku}
   const update = {
     $set: {
-      status: req.body.status
+      // status: req.body.status,
+      // "suggestedItems.$[item].status": req.body.status,
+      "suggestedItems.$.status": req.body.status
     }
   }
-  const options = {upsert:true}
-  MongoClient.connect(url, function(err, client){
+  // const options = {arrayFilters: [{"item.sku": req.body.purchaseSku}], 'multi':true}
+  const options = {upsert: true}
+  MongoClient.connect(url, async function(err, client){
     const db = client.db(dbName);
-    const cursor = db.collection(col).findOneAndUpdate(filter, update, options)
-    res.redirect(`/${req.body.status}`)
+    const cursor = await db.collection(col).findOneAndUpdate(filter, update, options)
+    if(req.body.status == 'new'){
+      res.redirect(`/`)
+    } else {
+      res.redirect(`/${req.body.status}`)
+    }
   })
   client.close()
 })
 
 app.post('/addNote/:custAddress', userAuth.verifyToken, (req, res) => { // adds notes to customers
-  const filter = {address: req.params.custAddress}
+  const filter = {address: req.params.custAddress, "suggestedItems.sku": req.body.purchaseSku}
   const update = {
     $set: {
-      notes: req.body.addNote
+      "suggestedItems.$.notes": req.body.addNote
     }
   }
   const options = {upsert:true}
   MongoClient.connect(url, function(err, client){
     const db = client.db(dbName);
     const cursor = db.collection(col).findOneAndUpdate(filter, update, options)
-    res.redirect(`/${req.body.pagePath}`)
+    if(req.body.pagePath == 'new'){
+      res.redirect(`/`)
+    } else {
+      res.redirect(`/${req.body.pagePath}`)
+    }
   })
   client.close()
 })
