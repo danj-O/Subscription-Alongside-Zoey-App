@@ -48,7 +48,7 @@ testArray = [{
 }]
 
 // Connection URL
-const uri = 'mongodb+srv://admin:changeme@123@ziptie.auxwu.mongodb.net/ziptie?retryWrites=true&w=majority';
+const uri = process.env.MONGO_URL;
 // Create a new MongoClient
 const client = new MongoClient(uri, {poolSize: 50, useUnifiedTopology: true, useNewUrlParser: true});
 

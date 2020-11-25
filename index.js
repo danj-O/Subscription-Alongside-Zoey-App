@@ -14,7 +14,7 @@ const MongoClient = require('mongodb').MongoClient;
 var cookieParser = require('cookie-parser');
 var app = express();
 
-const url = 'mongodb+srv://admin:changeme@123@ziptie.auxwu.mongodb.net/ziptie?retryWrites=true&w=majority';
+const url = process.env.MONGO_URL;
 const dbName = 'ziptie'
 const col = 'customers'
 const client = new MongoClient(url, {poolSize: 50, useUnifiedTopology: true, useNewUrlParser: true});
@@ -169,10 +169,21 @@ app.post('/changeStatus/:custAddress', userAuth.verifyToken, (req, res) => { //a
 })
 
 app.post('/addNote/:custAddress', userAuth.verifyToken, (req, res) => { // adds notes to customers
-  const filter = {address: req.params.custAddress, "suggestedItems.sku": req.body.purchaseSku}
-  const update = {
-    $set: {
-      "suggestedItems.$.notes": req.body.addNote
+  let filter = {}
+  let update = {}
+  if(req.body.purchaseSku == undefined){
+    filter = {address: req.params.custAddress}
+    update = {
+      $set: {
+        "notes": req.body.addNote
+      }
+    }
+  } else {
+    filter = {address: req.params.custAddress, "suggestedItems.sku": req.body.purchaseSku}
+    update = {
+      $set: {
+        "suggestedItems.$.notes": req.body.addNote
+      }
     }
   }
   const options = {upsert:true}
@@ -198,7 +209,7 @@ app.listen(PORT, function(){
 function con(a,b,c){console.log(a,b,c)}
 
 let revenue = 0;
-const getDataFrom = 2 //months ago
+const getDataFrom = 4 //months ago
 const baseUrl = 'https://2ieb7j62xark0rjf.mojostratus.io'
 let currentDate
 getNewData()
