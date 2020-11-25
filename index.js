@@ -209,7 +209,7 @@ app.listen(PORT, function(){
 function con(a,b,c){console.log(a,b,c)}
 
 let revenue = 0;
-const getDataFrom = 4 //months ago
+const getDataFrom = 2 //months ago
 const baseUrl = 'https://2ieb7j62xark0rjf.mojostratus.io'
 let currentDate
 getNewData()
