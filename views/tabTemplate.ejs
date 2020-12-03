@@ -2,7 +2,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="./styles.css" type="text/css">
-  <title>Contacted Customers</title>
+  <title><%= pageTitle %></title>
 </head>
 <body>
   <% 
@@ -73,7 +73,7 @@
                             <p>datesPurchased:<%= customerPurchasesArr[customer].suggestedItems[item].purchaseInstances[instance].datesPurchased %></p>
                           <% } %>
                       </div>
-                      <p><span style="font-weight: 600;">Suggested Subscription:</span> <%= customerPurchasesArr[customer].suggestedItems[item].suggest %></p>
+                      <p><span style="font-weight: 600;">Intervals Between Purchases(wks):</span> <%= customerPurchasesArr[customer].suggestedItems[item].suggest %></p>
                     </div>
     
                     <div class="single-purchase-edit-box">

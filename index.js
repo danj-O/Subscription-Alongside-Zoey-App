@@ -12,12 +12,21 @@ const userAuth = require('./userAuth')
 const dbUtils = require('./mongo')
 const MongoClient = require('mongodb').MongoClient;
 var cookieParser = require('cookie-parser');
-var app = express();
 
+var app = express();
 const url = process.env.MONGO_URL;
-const dbName = 'ziptie'
-const col = 'customers'
-const client = new MongoClient(url, {poolSize: 50, useUnifiedTopology: true, useNewUrlParser: true});
+let custCollection;
+let subsCollection;
+MongoClient.connect(url)
+.then(client =>{
+  const db = client.db('ziptie');
+  custCollection = db.collection('customers');
+  subsCollection = db.collection('subscriptions');
+  app.locals.custCollection = custCollection;
+  app.locals.subsCollection = subsCollection;
+});
+
+// const client = new MongoClient(url, {poolSize: 50, useUnifiedTopology: true, useNewUrlParser: true});
 
 app.use(cors())
 app.set('view engine','ejs');
@@ -27,19 +36,16 @@ app.use(bodyParser.urlencoded({
 }));
 app.use(cookieParser());
 
-app.get('/', userAuth.verifyToken, function(req, res, next){
+app.get('/', userAuth.verifyToken, async function(req, res, next){
+  const collection = req.app.locals.custCollection;
   const resultArr = []
 
-  MongoClient.connect(url, function(err, client){
-    const db = client.db(dbName);
-    const cursor = db.collection(col).find({
+  const cursor = await collection.find({
       "suggestedItems.status": 'new'
-      // $or:[{status: 'new'}, {status: undefined}]
     })
-    cursor.forEach((doc, err)=> {
+    await cursor.forEach((doc, err)=> {
       resultArr.push(doc)
     }, function(){
-      client.close()
       revenue = 0
       res.render('tabTemplate.ejs', { 
         customerPurchasesArr: resultArr,
@@ -50,20 +56,16 @@ app.get('/', userAuth.verifyToken, function(req, res, next){
         pagePath: 'new'
       })
     })
-  })
 })
-app.get('/contacted', userAuth.verifyToken, function(req, res, next){
+app.get('/contacted', userAuth.verifyToken, async function(req, res, next){
+  const collection = req.app.locals.custCollection;
   const resultArr = []
-
-  MongoClient.connect(url, function(err, client){
-    const db = client.db(dbName);
-    const cursor = db.collection(col).find({ 
+  const cursor = await collection.find({ 
       "suggestedItems.status": 'contacted' 
     })
-    cursor.forEach((doc, err)=> {
+    await cursor.forEach((doc, err)=> {
       resultArr.push(doc)
     }, function(){
-      client.close()
       revenue = 0
       res.render('tabTemplate.ejs', { 
         customerPurchasesArr: resultArr,
@@ -74,20 +76,17 @@ app.get('/contacted', userAuth.verifyToken, function(req, res, next){
         pagePath: 'contacted'
       })
     })
-  })
 })
-app.get('/potential', userAuth.verifyToken, function(req, res, next){
+app.get('/potential', userAuth.verifyToken, async function(req, res, next){
+  const collection = req.app.locals.custCollection;
   const resultArr = []
 
-  MongoClient.connect(url, function(err, client){
-    const db = client.db(dbName);
-    const cursor = db.collection(col).find({
+    const cursor = await collection.find({
       "suggestedItems.status": 'potential'
       })
-    cursor.forEach((doc, err)=> {
+    await cursor.forEach((doc, err)=> {
       resultArr.push(doc)
     }, function(){
-      client.close()
       revenue = 0
       res.render('tabTemplate.ejs', { 
         customerPurchasesArr: resultArr,
@@ -98,22 +97,29 @@ app.get('/potential', userAuth.verifyToken, function(req, res, next){
         pagePath: 'potential'
       })
     })
-  })
 })
-app.get('/active', userAuth.verifyToken, function(req, res, next){
-  const resultArr = []
 
-  MongoClient.connect(url, function(err, client){
-    const db = client.db(dbName);
-    const cursor = db.collection(col).find({
-      "suggestedItems.status": 'active'
+app.get('/active', userAuth.verifyToken, async function(req, res, next){
+  const collection = req.app.locals.subsCollection;
+  const resultArr = []
+  const subsResult = []
+    // const custCursor = collection.find({
+    //   "suggestedItems.status": 'active'
+    // })
+    const subsCursor = await collection.find({
+      status: "active"
     })
-    cursor.forEach((doc, err)=> {
-      resultArr.push(doc)
+    await subsCursor.forEach((doc, err)=> {
+      subsResult.push(doc)
     }, function(){
-      client.close()
+      // await subsResult.map(async sub =>{
+      //   // const singleCustData = await getDataWithAuth(`${baseUrl}/rest/V1/orders?searchCriteria[filter_groups][2][filters][0][field]=increment_id&searchCriteria[filter_groups][2][filters][0][value]=${sub.orderId}&searchCriteria[filter_groups][2][filters][0][condition_type]=eq`)
+      //   // const singleCustData = getDataWithAuth(`${baseUrl}/rest/V1/orders/${sub.orderId}`)
+      //   // await console.log(singleCustData.data.items[0].extension_attributes.shipping_assignments[0].shipping.address.street[0])
+      // })
       revenue = 0
-      res.render('tabTemplate.ejs', { 
+      res.render('active.ejs', { 
+        subscriptions: subsResult,
         customerPurchasesArr: resultArr,
         revenue: revenue,
         getDataFrom: getDataFrom,
@@ -122,7 +128,6 @@ app.get('/active', userAuth.verifyToken, function(req, res, next){
         pagePath: 'active'
       })
     })
-  })
 })
 
 app.get('/login', function(req,res){
@@ -143,7 +148,8 @@ app.post('/login', (req, res) => {
 })
 
 
-app.post('/changeStatus/:custAddress', userAuth.verifyToken, (req, res) => { //adds a status to cust object that will decide which tab it goes into
+app.post('/changeStatus/:custAddress', userAuth.verifyToken, async (req, res) => { //adds a status to cust object that will decide which tab it goes into
+  const collection = req.app.locals.custCollection;
   console.log(req.body.status, req.params, req.body.purchaseSku, typeof(req.body.purchaseSku))
   // const filter = {"address": req.params.custAddress}
   const filter = {"address": req.params.custAddress, "suggestedItems.sku": req.body.purchaseSku}
@@ -156,19 +162,17 @@ app.post('/changeStatus/:custAddress', userAuth.verifyToken, (req, res) => { //a
   }
   // const options = {arrayFilters: [{"item.sku": req.body.purchaseSku}], 'multi':true}
   const options = {upsert: true}
-  MongoClient.connect(url, async function(err, client){
-    const db = client.db(dbName);
-    const cursor = await db.collection(col).findOneAndUpdate(filter, update, options)
+
+    const cursor = await collection.findOneAndUpdate(filter, update, options)
     if(req.body.status == 'new'){
       res.redirect(`/`)
     } else {
       res.redirect(`/${req.body.status}`)
     }
-  })
-  client.close()
 })
 
-app.post('/addNote/:custAddress', userAuth.verifyToken, (req, res) => { // adds notes to customers
+app.post('/addNote/:custAddress', userAuth.verifyToken, async (req, res) => { // adds notes to customers
+  const collection = req.app.locals.custCollection;
   let filter = {}
   let update = {}
   if(req.body.purchaseSku == undefined){
@@ -187,20 +191,16 @@ app.post('/addNote/:custAddress', userAuth.verifyToken, (req, res) => { // adds 
     }
   }
   const options = {upsert:true}
-  MongoClient.connect(url, function(err, client){
-    const db = client.db(dbName);
-    const cursor = db.collection(col).findOneAndUpdate(filter, update, options)
+    const cursor = collection.findOneAndUpdate(filter, update, options)
     if(req.body.pagePath == 'new'){
       res.redirect(`/`)
     } else {
       res.redirect(`/${req.body.pagePath}`)
     }
-  })
-  client.close()
 })
 
 app.listen(PORT, function(){
-  console.log("Server is running on port 3000")
+  console.log(`Server is running on ${PORT}`)
 })
 
 
@@ -209,17 +209,20 @@ app.listen(PORT, function(){
 function con(a,b,c){console.log(a,b,c)}
 
 let revenue = 0;
-const getDataFrom = 2 //months ago
+const getDataFrom = 3 //months ago
 const baseUrl = 'https://2ieb7j62xark0rjf.mojostratus.io'
 let currentDate
 getNewData()
 
+// deleteSubscription('000000001')
+
 
 async function getNewData(){  //this function gets all data from m2 and removes any items that are repeats  in the db
-  const subscriptions = await getDataWithAuth(`${baseUrl}/rest/V1/subscription/search?searchCriteria[pageSize]=0`)
-  // console.log('subscriptions', subscriptions.data)
-
   await console.log('Started getting data, this will take some time...')
+  const subscriptions = await getDataWithAuth(`${baseUrl}/rest/V1/subscription/search?searchCriteria[pageSize]=0`)
+  // console.log('subscriptions', subscriptions.data.items)
+  const subDataWithAddress = await dbUtils.saveSubscriptionsToMongo(subscriptions.data.items, subsCollection)
+  await console.log(subDataWithAddress)
   const dateFrom = utils.calculateDateFrom(getDataFrom)
 
   const orders = await getData(`/rest/V1/orders?searchCriteria[filter_groups][0][filters][0][field]=created_at&searchCriteria[filter_groups][0][filters][0][value]=${dateFrom[0]}-${dateFrom[1]}-01 00:00:00&searchCriteria[filter_groups][0][filters][0][condition_type]=gt`) 
@@ -227,10 +230,11 @@ async function getNewData(){  //this function gets all data from m2 and removes 
   const multiPurchaseCustData = await getMultiplePurchaseCustomerData(orders)  //get only customers by address who have made multiple purchases
   const organizedData = await organizeData(multiPurchaseCustData) //array of customers who have purchased multiple times with all of their purchases sorted
   const customerPurchasesArr = await comparePurchases(organizedData) //arr containing customers with multiple purchases and which products they have bought more than once
-  samePurchaseCustomers = await utils.filterSamePurchaseCustomers(customerPurchasesArr)  //filters out the customers who didnt purchase the same thing
+  const samePurchaseCustomers = await utils.filterSamePurchaseCustomers(customerPurchasesArr)  //filters out the customers who didnt purchase the same thing
   const filteredData = await compareDates(samePurchaseCustomers)  //check the difference in dates purchsed, THIS GIVES THE ACTUAL SUGGESTION
   const arrayOfFilteredData = await utils.makeObjectintoArray(filteredData)
-  await dbUtils.appendNewDataToMongo(arrayOfFilteredData)
+  // const dataWithSubs = await 
+  await dbUtils.appendNewDataToMongo(arrayOfFilteredData, custCollection)
 
   currentDate = new Date();  //create a timestamp of last data pull
   con('FINISHED', arrayOfFilteredData.length)
@@ -280,7 +284,8 @@ function organizeData(customersByAddress){  //FUNCTION THAT COMPARES ALL ORDERS 
       name : customersByAddress[customer][0].name,
       email : customersByAddress[customer][0].email,
       addressOthers : customersByAddress[customer][0].address,
-      purchasedItems : customerPurchasedItems
+      purchasedItems : customerPurchasedItems,
+      // orderNumber: customersByAddress[customer][0].orderNumber
     })
   }
   return result
@@ -295,7 +300,7 @@ function comparePurchases(customersArr){
     customer.purchasedItems.map(item => {
       if (item.sku === prevItem.sku && count < 1){ ////first time finding a duplicate purchase - if the skus are the same and we havent seen this item yet(count = 0)
         if(prevItem.createdAt.split(' ')[0] !== item.createdAt.split(' ')[0]){  //if the items weren't bought at the same time
-          // console.log(item.sku, prevItem.createdAt, item.createdAt)
+          // console.log(item.sku, prevItem.createdAt.split(' ')[0], item.createdAt.split(' ')[0])
           customer.multiPurchasedItems[item.sku] = {
             productName: item.productName,
             sku: item.sku,
@@ -307,6 +312,7 @@ function comparePurchases(customersArr){
           }
           count++  //
         } else {  //otherwise, the items were bought at same time SAME DATE
+          // console.log("SAME DATE", item.sku, prevItem.createdAt, item.createdAt)
           customer.multiPurchasedItems[item.sku] = {
             productName: item.productName,
             sku: item.sku,
@@ -319,7 +325,8 @@ function comparePurchases(customersArr){
           // count++
         }
       } else if (item.sku === prevItem.sku && count >= 1){  //after first time finding duplicate
-        if(prevItem.createdAt !== item.createdAt){  //if the items weren't bought at the same time
+        if(prevItem.createdAt.split(' ')[0] !== item.createdAt.split(' ')[0]){  //if the items weren't bought at the same time
+          // console.log('NOTE BOUGHT AT SAME TIME AFTER FIRST')
           customer.multiPurchasedItems[item.sku].timesPurchased++
           customer.multiPurchasedItems[item.sku].purchaseInstances.push({qtyOrdered: item.qtyOrdered, datesPurchased: item.createdAt})
           customer.multiPurchasedItems[item.sku].qtyOrdered.push(item.qtyOrdered)
@@ -408,3 +415,16 @@ async function getDataWithAuth(url){
     console.log(err)
   }
 }
+
+// async function deleteSubscription(subId){
+//   const url = `${baseUrl}/rest/V1/subscription/${subId}`
+//   try{
+//     const request = { url: url, method: "DELETE"}
+//     const authHeader = Oauth1Helper.getAuthHeaderForRequest(request);
+//     return await axios.delete( request.url, { header: authHeader })
+//   }catch(err){
+//     console.log(err)
+//   } finally {
+//     console.log(`subscription #${subId} was deleted from m2 db`)
+//   }
+// }

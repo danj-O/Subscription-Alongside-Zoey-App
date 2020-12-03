@@ -1,0 +1,63 @@
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="./styles.css" type="text/css">
+  <title><%= pageTitle %></title>
+</head>
+<body>
+  <% 
+    
+  %>
+  <div class="header">
+    <h1><%= pageTitle %></h1>
+    <p class="logged-in-p">You are currently logged in</p>
+    <p style="font-style: italic;">You will be periodically logged out for security reasons.</p>
+    <p>There are currently <%= customerPurchasesArr.length%> customers in this tab.</p>
+  </div>
+
+  <header>
+    <%- include('header.ejs', {pagePath: pagePath}) %>
+  </header>
+
+  <div class="main-container">
+    <% if(subscriptions.length < 1){ %>
+      <p class="loading-p">THERE ARE NO <%= pageTitle %> AT THIS TIME.</p>
+    <% } else { 
+      const activeSubs = subscriptions.filter(sub =>{
+        return sub.status == pagePath
+      })
+      for(sub in activeSubs){ %>
+        <div class="single-customer">
+          <p class="address"><%= activeSubs[sub].address %>, <%= activeSubs[sub].addressOthers.city %>, <%= activeSubs[sub].addressOthers.region %> <%= activeSubs[sub].addressOthers.postcode %></p>
+          <div class="customer-box">
+            <div class="customer-info">
+              <p>STATUS: 3<%= activeSubs[sub].status %></p>
+              <p>PHONE: <%= activeSubs[sub].addressOthers.telephone %></p>
+              <p><%= activeSubs[sub].firstName %> <%= activeSubs[sub].lastName %></p>
+              <p><%= activeSubs[sub].email %></p>
+              <p>Started On: <%= activeSubs[sub].created_at %></p>
+              <p>Interval: <%= activeSubs[sub].interval[0] %> <%= activeSubs[sub].interval[1] %></p>
+              <p>Last Run: <%= activeSubs[sub].last_run %></p>
+              <p>Next Scheduled Run: <%= activeSubs[sub].next_run %></p>
+              <p>Run Count: <%= activeSubs[sub].run_count %></p>
+              <p>Product: <%= activeSubs[sub].productName %></p>
+            </div>
+            <div class="cust-form">
+              <p>CUSTOMER NOTES: <%= activeSubs[sub].notes %> need to cxonnect notes to customer in db, not subscription!</p>
+              <form action="/addNote/<%= activeSubs[sub].address %>" method="post">
+                <textarea name="addNote" type="text" placeholder="Add A Note About The Customer"></textarea>
+                <input type="submit" value="ADD NOTE">
+                <input type="hidden" name="pagePath" value="<%= pagePath %>">
+              </form>
+            </div>
+          </div>
+
+
+        </div>
+      <% } %>
+    <% } %>
+
+  </div>
+  <script src="../public/script.js"></script>
+</body>
+</html>
