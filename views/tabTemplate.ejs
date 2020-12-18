@@ -5,20 +5,9 @@
   <title><%= pageTitle %></title>
 </head>
 <body>
-  <% 
-    
-  %>
-  <div class="header">
-    <h1><%= pageTitle %></h1>
-    <p class="logged-in-p">You are currently logged in</p>
-    <p style="font-style: italic;">You will be periodically logged out for security reasons.</p>
-    <p>There are currently <%= customerPurchasesArr.length%> customers in this tab.</p>
-  </div>
-
   <header>
     <%- include('header.ejs', {pagePath: pagePath}) %>
   </header>
-
 
   <div class="main-container">
     <% if (customerPurchasesArr.length < 1){ %>
@@ -41,9 +30,10 @@
               
               <div class="customer-box">
                 <div class="customer-info">
-                  <p>PHONE: <%= customerPurchasesArr[customer].addressOthers.telephone %></p>
+                  <p>Address: <%= customerPurchasesArr[customer].address %>, <%= customerPurchasesArr[customer].addressOthers.city %>, <%= customerPurchasesArr[customer].addressOthers.region %> <%= customerPurchasesArr[customer].addressOthers.postcode %></p>
                   <p><%= customerPurchasesArr[customer].name %></p>
                   <p><%= customerPurchasesArr[customer].email %></p>
+                  <p>Phone: <%= customerPurchasesArr[customer].addressOthers.telephone %></p>
                 </div>
     
                 <div class="cust-form">
@@ -57,11 +47,17 @@
               </div>
   
               <div class="purchased-items">
-                <h4>This customer has made these purchases that triggered a suggestion:</h4>
-                <% for(item in customerPurchasesArr[customer].suggestedItems){ %>
+                <h4 class="sub-head">This customer has made these purchases that triggered suggestions:</h4>
+
+                <% var others = [] %>
+                <% 
+                for(item in customerPurchasesArr[customer].suggestedItems){ 
+                  if(customerPurchasesArr[customer].suggestedItems[item].status !== pagePath){
+                    others.push(customerPurchasesArr[customer].suggestedItems[item])
+                  } else {
+                %>
                   <div class="single-customer-purchased-item">
                     <div class="single-customer-purchase">
-                      <p class="status-p">STATUS: <span class="status-span"><%= customerPurchasesArr[customer].suggestedItems[item].status %></span></p>
                       <p><span style="font-weight: 600;">Product:</span> <%= customerPurchasesArr[customer].suggestedItems[item].productName %></p>
                       <p>SKU: <%= customerPurchasesArr[customer].suggestedItems[item].sku %></p>
                       <p>Price: $<%= customerPurchasesArr[customer].suggestedItems[item].price %></p>
@@ -77,12 +73,13 @@
                     </div>
     
                     <div class="single-purchase-edit-box">
+                      <p class="status purchase-status <%= pagePath %>">STATUS: <%= customerPurchasesArr[customer].suggestedItems[item].status %></p>
                       <form action="/changeStatus/<%= customerPurchasesArr[customer].address %>" method="POST">
                         <select name="status" id="status">
                           <option value="new">--New Suggestion --</option>
                           <option value="contacted">Contacted</option>
                           <option value="potential">Potential</option>
-                          <option value="paused">Paused</option>
+                          <!-- <option value="paused">Paused</option> -->
                           <option value="not-interested">Not Interested</option>
                         </select>
                         <input type="hidden" name="purchaseSku" value="<%= customerPurchasesArr[customer].suggestedItems[item].sku %>">
@@ -99,8 +96,28 @@
                       </form>
                     </div>
                   </div>
-                <% } %>
+
+                <% 
+                  }
+                } 
+                %>
+
               </div>
+              <div class="others">
+                <h4 class="sub-head">OTHER Subscriptions OR Suggestions not seen on this page</h4>
+                <%
+                for(item in others){
+                %>
+                  <div class="single-other">
+                    <p style="float: left; padding-top: 10px;"><%= others[item].productName %></p>
+                    <p class="status <%= others[item].status %>" style="float: right;">STATUS: <%= others[item].status %></p>
+                    <p style="clear: both;"></p>
+                  </div>
+                <%
+                }
+                %>
+              </div>
+
             </div>
 
           <%}

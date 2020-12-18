@@ -15,15 +15,17 @@ var cookieParser = require('cookie-parser');
 
 var app = express();
 const url = process.env.MONGO_URL;
-let custCollection;
-let subsCollection;
+
+// let custCollection;
+// let subsCollection;
 MongoClient.connect(url)
 .then(client =>{
   const db = client.db('ziptie');
-  custCollection = db.collection('customers');
-  subsCollection = db.collection('subscriptions');
+  const custCollection = db.collection('customers');
+  const subsCollection = db.collection('subscriptions');
   app.locals.custCollection = custCollection;
   app.locals.subsCollection = subsCollection;
+  getNewData(custCollection, subsCollection)
 });
 
 // const client = new MongoClient(url, {poolSize: 50, useUnifiedTopology: true, useNewUrlParser: true});
@@ -98,34 +100,67 @@ app.get('/potential', userAuth.verifyToken, async function(req, res, next){
       })
     })
 })
+app.get('/not-interested', userAuth.verifyToken, async function(req, res, next){
+  const collection = req.app.locals.custCollection;
+  const resultArr = []
+
+    const cursor = await collection.find({
+      "suggestedItems.status": 'not-interested'
+      })
+    await cursor.forEach((doc, err)=> {
+      resultArr.push(doc)
+    }, function(){
+      revenue = 0
+      res.render('tabTemplate.ejs', { 
+        customerPurchasesArr: resultArr,
+        revenue: revenue,
+        getDataFrom: getDataFrom,
+        currentDate: currentDate,
+        pageTitle: 'Not Interested But Suggested',
+        pagePath: 'not-interested'
+      })
+    })
+})
 
 app.get('/active', userAuth.verifyToken, async function(req, res, next){
-  const collection = req.app.locals.subsCollection;
+  const collection = req.app.locals.custCollection;
   const resultArr = []
-  const subsResult = []
-    // const custCursor = collection.find({
-    //   "suggestedItems.status": 'active'
-    // })
-    const subsCursor = await collection.find({
-      status: "active"
+    const cursor = collection.find({
+      "subscriptions.status": 'active'
     })
-    await subsCursor.forEach((doc, err)=> {
-      subsResult.push(doc)
+    await cursor.forEach((doc, err)=> {
+      resultArr.push(doc)
     }, function(){
-      // await subsResult.map(async sub =>{
-      //   // const singleCustData = await getDataWithAuth(`${baseUrl}/rest/V1/orders?searchCriteria[filter_groups][2][filters][0][field]=increment_id&searchCriteria[filter_groups][2][filters][0][value]=${sub.orderId}&searchCriteria[filter_groups][2][filters][0][condition_type]=eq`)
-      //   // const singleCustData = getDataWithAuth(`${baseUrl}/rest/V1/orders/${sub.orderId}`)
-      //   // await console.log(singleCustData.data.items[0].extension_attributes.shipping_assignments[0].shipping.address.street[0])
-      // })
       revenue = 0
       res.render('active.ejs', { 
-        subscriptions: subsResult,
+        // subscriptions: subsResult,
         customerPurchasesArr: resultArr,
         revenue: revenue,
         getDataFrom: getDataFrom,
         currentDate: currentDate,
         pageTitle: 'Active Subscriptions',
         pagePath: 'active'
+      })
+    })
+})
+app.get('/paused', userAuth.verifyToken, async function(req, res, next){
+  const collection = req.app.locals.custCollection;
+  const resultArr = []
+    const cursor = collection.find({
+      "subscriptions.status": 'paused'
+    })
+    await cursor.forEach((doc, err)=> {
+      resultArr.push(doc)
+    }, function(){
+      revenue = 0
+      res.render('active.ejs', { 
+        // subscriptions: subsResult,
+        customerPurchasesArr: resultArr,
+        revenue: revenue,
+        getDataFrom: getDataFrom,
+        currentDate: currentDate,
+        pageTitle: 'Paused Subscriptions',
+        pagePath: 'paused'
       })
     })
 })
@@ -199,6 +234,34 @@ app.post('/addNote/:custAddress', userAuth.verifyToken, async (req, res) => { //
     }
 })
 
+app.post('/addSubNote/:custAddress', userAuth.verifyToken, async (req, res) => { // adds notes to customers
+  const collection = req.app.locals.custCollection;
+  let filter = {}
+  let update = {}
+  if(req.body.subNum == undefined){
+    filter = {address: req.params.custAddress}
+    update = {
+      $set: {
+        "notes": req.body.addSubNote
+      }
+    }
+  } else {
+    filter = {address: req.params.custAddress, "subscriptions.subNum": req.body.subNum}
+    update = {
+      $set: {
+        "subscriptions.$.notes": req.body.addSubNote
+      }
+    }
+  }
+  const options = {upsert:true}
+    const cursor = collection.findOneAndUpdate(filter, update, options)
+    if(req.body.pagePath == 'new'){
+      res.redirect(`/`)
+    } else {
+      res.redirect(`/${req.body.pagePath}`)
+    }
+})
+
 app.listen(PORT, function(){
   console.log(`Server is running on ${PORT}`)
 })
@@ -212,19 +275,18 @@ let revenue = 0;
 const getDataFrom = 3 //months ago
 const baseUrl = 'https://2ieb7j62xark0rjf.mojostratus.io'
 let currentDate
-getNewData()
 
 // deleteSubscription('000000001')
 
 
-async function getNewData(){  //this function gets all data from m2 and removes any items that are repeats  in the db
+async function getNewData(custCollection, subsCollection){  //this function gets all data from m2 and removes any items that are repeats  in the db
   await console.log('Started getting data, this will take some time...')
-  const subscriptions = await getDataWithAuth(`${baseUrl}/rest/V1/subscription/search?searchCriteria[pageSize]=0`)
-  // console.log('subscriptions', subscriptions.data.items)
-  const subDataWithAddress = await dbUtils.saveSubscriptionsToMongo(subscriptions.data.items, subsCollection)
-  await console.log(subDataWithAddress)
-  const dateFrom = utils.calculateDateFrom(getDataFrom)
+  
+  // const subscriptions = await getDataWithAuth(`${baseUrl}/rest/V1/subscription/search?searchCriteria[pageSize]=0`)
+  // const subData = await dbUtils.appendSubscriptionsToCustomers(subscriptions.data.items, custCollection)
 
+  const dateFrom = utils.calculateDateFrom(getDataFrom)
+  
   const orders = await getData(`/rest/V1/orders?searchCriteria[filter_groups][0][filters][0][field]=created_at&searchCriteria[filter_groups][0][filters][0][value]=${dateFrom[0]}-${dateFrom[1]}-01 00:00:00&searchCriteria[filter_groups][0][filters][0][condition_type]=gt`) 
   // console.log(orders[0])
   const multiPurchaseCustData = await getMultiplePurchaseCustomerData(orders)  //get only customers by address who have made multiple purchases
@@ -233,8 +295,10 @@ async function getNewData(){  //this function gets all data from m2 and removes 
   const samePurchaseCustomers = await utils.filterSamePurchaseCustomers(customerPurchasesArr)  //filters out the customers who didnt purchase the same thing
   const filteredData = await compareDates(samePurchaseCustomers)  //check the difference in dates purchsed, THIS GIVES THE ACTUAL SUGGESTION
   const arrayOfFilteredData = await utils.makeObjectintoArray(filteredData)
-  // const dataWithSubs = await 
   await dbUtils.appendNewDataToMongo(arrayOfFilteredData, custCollection)
+  
+  const subscriptions = await getDataWithAuth(`${baseUrl}/rest/V1/subscription/search?searchCriteria[pageSize]=0`)
+  const subData = await dbUtils.appendSubscriptionsToCustomers(subscriptions.data.items, custCollection)
 
   currentDate = new Date();  //create a timestamp of last data pull
   con('FINISHED', arrayOfFilteredData.length)
@@ -246,7 +310,7 @@ async function getData(suffix){
   let response = await getDataWithAuth(`${baseUrl}${suffix}`)
   const result = []
   await response.data.items.map(item => {
-    if (item.state == 'complete'){
+    if (item.state == 'complete' && item.extension_attributes.shipping_assignments[0].shipping.address !== undefined){
       result.push({
         name : item.billing_address.firstname,
         email : item.customer_email,
@@ -257,9 +321,23 @@ async function getData(suffix){
         status : item.status,
         address : item.extension_attributes.shipping_assignments[0].shipping.address,
       })
+    } else {
+      // console.log("hmm", item.state, item.billing_address.firstname, item.increment_id, item.customer_email)  //logs all orders that get removed before processing
     }
   })
-  return await result.sort(utils.compareStreet) // sort the results by email
+  result.map(res => {
+    if (res.address == undefined){
+      console.log('custom_options', res.items[0].product_option.extension_attributes.custom_options)
+      console.log('configurable_item_options', res.items[0].product_option.extension_attributes.configurable_item_options)
+      console.log('parent item', res.items[1].parent_item)
+    }
+  })
+  // console.log(result.address.street)
+  try{
+    return await result.sort(utils.compareStreet) // sort the results by email
+  } catch(err){
+    console.log(err)
+  }
 }
 
 
