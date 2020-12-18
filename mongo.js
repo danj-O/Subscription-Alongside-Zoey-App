@@ -27,6 +27,7 @@ async function appendNewDataToMongo(m2DataArray, collection){  //compare the two
                 const m2Item = await m2Customer.suggestedItems.find(item => item.sku == dbItem.sku)
                 m2Item.status = dbItem.status;  //carry over status and items from old db data if it exists
                 m2Item.notes = dbItem.notes;
+                console.log(m2Item.notes, m2Item.status)
                 await dbItem.purchaseInstances.forEach(async dbInstance => { //loop through db purchase instacnes of given item
                   if (await m2Item.purchaseInstances.some(m2Instance => m2Instance.datesPurchased == dbInstance.datesPurchased)){  //compare the items purchase instances dates
                   } else {  //the purchase date didnt already exist in the new data

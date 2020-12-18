@@ -164,6 +164,27 @@ app.get('/paused', userAuth.verifyToken, async function(req, res, next){
       })
     })
 })
+app.get('/canceled', userAuth.verifyToken, async function(req, res, next){
+  const collection = req.app.locals.custCollection;
+  const resultArr = []
+    const cursor = collection.find({
+      "subscriptions.status": 'canceled'
+    })
+    await cursor.forEach((doc, err)=> {
+      resultArr.push(doc)
+    }, function(){
+      revenue = 0
+      res.render('active.ejs', { 
+        // subscriptions: subsResult,
+        customerPurchasesArr: resultArr,
+        revenue: revenue,
+        getDataFrom: getDataFrom,
+        currentDate: currentDate,
+        pageTitle: 'Canceled Subscriptions',
+        pagePath: 'canceled'
+      })
+    })
+})
 
 app.get('/login', function(req,res){
   return res.render('login.ejs')
@@ -272,7 +293,7 @@ app.listen(PORT, function(){
 function con(a,b,c){console.log(a,b,c)}
 
 let revenue = 0;
-const getDataFrom = 3 //months ago
+const getDataFrom = 6 //months ago
 const baseUrl = 'https://2ieb7j62xark0rjf.mojostratus.io'
 let currentDate
 
