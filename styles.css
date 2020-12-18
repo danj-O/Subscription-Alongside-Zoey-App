@@ -23,7 +23,10 @@
   font-size: 1.2em;
   font-style: normal;
 }
-
+.description{
+  text-align: center;
+  padding-top: 10px;
+}
 .main-container{
   /* width: 100%; */
   /* height: 100%; */
@@ -183,4 +186,7 @@
 }
 .not-interested{
   background: rgb(189, 17, 17);
+}
+.canceled{
+  background: rgb(39, 39, 39);
 }

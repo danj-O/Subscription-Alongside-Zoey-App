@@ -9,6 +9,10 @@
     <%- include('header.ejs', {pagePath: pagePath}) %>
   </header>
 
+  <div class="description">
+    <h4>You cannot change the status on this tab because it is governed by the actual state of subscriptions in Magento. They will change automatically.</h4>
+  </div>
+
   <div class="main-container">
     <% if (customerPurchasesArr.length < 1){ %>
       <p class="loading-p">THERE ARE NO <%= pageTitle %> AT THIS TIME.</p>
@@ -48,7 +52,13 @@
   
               <div class="purchased-items">
                 <h4 class="sub-head">This customer has made these purchases that triggered a suggestion:</h4>
-                <% for(item in customerPurchasesArr[customer].subscriptions){ %>
+                <% var others = [] %>
+                <% 
+                for(item in customerPurchasesArr[customer].subscriptions){ 
+                  if(customerPurchasesArr[customer].subscriptions[item].status !== pagePath){
+                    others.push(customerPurchasesArr[customer].subscriptions[item])
+                  } else {
+                %>
                   <div class="single-customer-purchased-item">
                     <div class="single-customer-purchase">
                       <p><span style="font-weight: 600;">Product:</span> <%= customerPurchasesArr[customer].subscriptions[item].productName %></p>
@@ -82,7 +92,24 @@
                       </form>
                     </div>
                   </div>
-                <% } %>
+                <% 
+                  }
+                } %>
+              </div>
+
+              <div class="others">
+                <h4 class="sub-head">OTHER Subscriptions OR Suggestions not seen on this page(need to add subscriptions to tabtemp and suggestions to activetemp)</h4>
+                <%
+                for(item in others){
+                %>
+                  <div class="single-other">
+                    <p style="float: left; padding-top: 10px;"><%= others[item].productName %></p>
+                    <p class="status <%= others[item].status %>" style="float: right;">STATUS: <%= others[item].status %></p>
+                    <p style="clear: both;"></p>
+                  </div>
+                <%
+                }
+                %>
               </div>
             </div>
 
