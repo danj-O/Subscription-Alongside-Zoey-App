@@ -5,48 +5,23 @@ const axios = require('axios')
 const baseUrl = 'https://2ieb7j62xark0rjf.mojostratus.io'
 
 async function appendNewDataToMongo(m2DataArray, collection){  //compare the two sets of data, append additions to db  ADDING THE DB DATA TO THE NEW DATA
-  // console.log(collection)
-  m2DataArray.map(customer => {customer.suggestedItems.map(item => {
-    item.status = 'new'
-  })})
-  const dataB = 'ziptie'
-  const col = 'customers'
-  // m2DataArray = testArray
+  await m2DataArray.map(async customer => {customer.suggestedItems.map(item => { item.status = 'new' })})
   try {
     const dbData = await collection.find()
-
     await dbData.forEach(async dbCustomer => {  //loop through db data
-      await m2DataArray.map(async m2Customer => {  //loop through new data and comare to the alreaady existing customer
-        if(m2Customer.address == dbCustomer.address){  //find the same customer in both arrays
-          delete dbCustomer._id  //delete thid because new items don't have an item until mdb assigns them one  THIS DOESNT MATTER IF BELOW DOESNT WORK
-          if (JSON.stringify(m2Customer) == JSON.stringify(dbCustomer)){ //are the new items exactly the same as the db items?  THIS ISNT QUITE RIGHT!!! but maybe doesnt matter
-            console.log("customer hasn't made any new purchases")
-          } else {
-            await dbCustomer.suggestedItems.forEach(async dbItem => {  //loop through db sugg items
-              if(await m2Customer.suggestedItems.some(m2Item => m2Item.sku == dbItem.sku)){  //if the m2 customer items contains the current dbitem
-                const m2Item = await m2Customer.suggestedItems.find(item => item.sku == dbItem.sku)
-                m2Item.status = dbItem.status;  //carry over status and items from old db data if it exists
-                m2Item.notes = dbItem.notes;
-                console.log(m2Item.notes, m2Item.status)
-                await dbItem.purchaseInstances.forEach(async dbInstance => { //loop through db purchase instacnes of given item
-                  if (await m2Item.purchaseInstances.some(m2Instance => m2Instance.datesPurchased == dbInstance.datesPurchased)){  //compare the items purchase instances dates
-                  } else {  //the purchase date didnt already exist in the new data
-                    await m2Item.purchaseInstances.unshift(dbInstance)  //add it to the beginning to hopefully keep dates sorted
-                  }
-                })
-              } else {  //if the customer doesnt ciontain that item
-                dbItem.status = 'new'
-                await m2Customer.suggestedItems.push(dbItem)
-              }
-            })
-          }
-        } else {
-          // console.log('not same address')
-        }
-      })
+      if(m2DataArray.some(({ address }) => address == dbCustomer.address)) {
+        const correspondingM2Customer = m2DataArray.find(m2Customer => m2Customer.address == dbCustomer.address)
+        correspondingM2Customer.notes = dbCustomer.notes
+        correspondingM2Customer.suggestedItems.map(m2Item => {
+          const correspondingDbItem = dbCustomer.suggestedItems.find(dbItem => m2Item.sku == dbItem.sku)
+          m2Item.status = correspondingDbItem.status
+          m2Item.notes = correspondingDbItem.notes
+        })
+        // console.log('correspondingM2Customer', correspondingM2Customer)
+        // console.log('dbCustomer', dbCustomer)
+      }
     })
-    //get the suggested interval for all data before putting back into db
-    const dataWithSuggestions = utils.getSuggestions(m2DataArray)
+    const dataWithSuggestions = utils.getSuggestions(m2DataArray)  //get the suggested interval for all data before putting back into db
     await upsertMany(dataWithSuggestions, collection)
   } catch (err){
     console.log("ERROR", err)
@@ -63,11 +38,17 @@ async function appendSubscriptionsToCustomers(m2Data, collection){
   m2Data = await m2Data.sort(compareAddresses)  //now they are in order by address and we can use "prev sub"
   const prevSub = {}
   await m2Data.map(async sub =>{  //loop through new subscriptions data
+    // console.log('SUBB', sub)
     //get the corresponding order from m2 because it may not already exist in mongo
     const singleCustData = await getSubDataWithAuth(`${baseUrl}/rest/V1/orders?searchCriteria[filter_groups][2][filters][0][field]=increment_id&searchCriteria[filter_groups][2][filters][0][value]=${sub.orderId}&searchCriteria[filter_groups][2][filters][0][condition_type]=eq`)
     //ADD if the adress doesnt exist, move to next doc
-    sub.address = singleCustData.data.items[0].extension_attributes.shipping_assignments[0].shipping.address.street[0]
-    sub.addressOthers = singleCustData.data.items[0].extension_attributes.shipping_assignments[0].shipping.address
+    if(singleCustData.data.items[0].extension_attributes.shipping_assignments[0].shipping.address.street[0]){
+      sub.address = singleCustData.data.items[0].extension_attributes.shipping_assignments[0].shipping.address.street[0]
+      sub.addressOthers = singleCustData.data.items[0].extension_attributes.shipping_assignments[0].shipping.address
+    } else {
+      sub.address = ''
+      sub.addressOthers = ''
+    }
     const dbCust = await collection.findOne({address: sub.address})  //finding the corresponding customer in mongo now that we have an address
     let update = {}
     if(await dbCust == null){ //if there is no customer in mongo related to current sub
@@ -84,7 +65,7 @@ async function appendSubscriptionsToCustomers(m2Data, collection){
     } else {  // the customer was found in mongo   ----NEED TO WORK OUT ADDING THE SUBSCRIPTIONS
       let subscriptions = []
       if(dbCust.subscriptions.some(e => e.subNum === sub.subNum)){  //if this current customer already has this sub saved
-        console.log('customer already has this subscription')
+        // console.log('customer already has this subscription')
         subscriptions = [...dbCust.subscriptions]
         const currentSub = subscriptions.find(x => x.subNum == sub.subNum)
         // console.log("current sub", currentSub.subNum, currentSub.notes, currentSub.status, sub.status, sub.notes)
@@ -94,7 +75,7 @@ async function appendSubscriptionsToCustomers(m2Data, collection){
         subscriptions[index].notes = currentSubNotes || ''  //adds the old notes to new data
         // console.log("current sub next line", currentSub.subNum, currentSub.status, sub.status)
       } else { // the customer doesn't have a sub with this subnum -- add it
-        console.log('customer IN DB doesnt have a sub with this subnum')
+        // console.log('customer IN DB doesnt have a sub with this subnum')
         subscriptions = [...dbCust.subscriptions, sub]  //but maybe there havent been subscriptions added yet!!
       }
       update = {
@@ -112,10 +93,9 @@ async function appendSubscriptionsToCustomers(m2Data, collection){
     const filter = {address: sub.address}
     const options = {upsert: true}
     const cursor = await collection.updateOne(filter, update, options)
-    console.log(
-      `${cursor.matchedCount} document(s) matched the filter, updated ${cursor.modifiedCount} document(s)`,
-    );
+    // console.log(`${cursor.matchedCount} document(s) matched the filter, updated ${cursor.modifiedCount} document(s)`);
   })
+  console.log('new data appended')
 }
 
 

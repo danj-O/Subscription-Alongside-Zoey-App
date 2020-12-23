@@ -290,18 +290,13 @@ app.listen(PORT, function(){
 
 // -----------------START----------------------------------------------------------------- 
 
-function con(a,b,c){console.log(a,b,c)}
-
 let revenue = 0;
 const getDataFrom = 6 //months ago
 const baseUrl = 'https://2ieb7j62xark0rjf.mojostratus.io'
 let currentDate
 
-// deleteSubscription('000000001')
-
-
 async function getNewData(custCollection, subsCollection){  //this function gets all data from m2 and removes any items that are repeats  in the db
-  await console.log('Started getting data, this will take some time...')
+  await console.log('Started cron, this will take some time...')
   
   // const subscriptions = await getDataWithAuth(`${baseUrl}/rest/V1/subscription/search?searchCriteria[pageSize]=0`)
   // const subData = await dbUtils.appendSubscriptionsToCustomers(subscriptions.data.items, custCollection)
@@ -309,7 +304,7 @@ async function getNewData(custCollection, subsCollection){  //this function gets
   const dateFrom = utils.calculateDateFrom(getDataFrom)
   
   const orders = await getData(`/rest/V1/orders?searchCriteria[filter_groups][0][filters][0][field]=created_at&searchCriteria[filter_groups][0][filters][0][value]=${dateFrom[0]}-${dateFrom[1]}-01 00:00:00&searchCriteria[filter_groups][0][filters][0][condition_type]=gt`) 
-  // console.log(orders[0])
+  console.log(orders.items)
   const multiPurchaseCustData = await getMultiplePurchaseCustomerData(orders)  //get only customers by address who have made multiple purchases
   const organizedData = await organizeData(multiPurchaseCustData) //array of customers who have purchased multiple times with all of their purchases sorted
   const customerPurchasesArr = await comparePurchases(organizedData) //arr containing customers with multiple purchases and which products they have bought more than once
@@ -317,12 +312,12 @@ async function getNewData(custCollection, subsCollection){  //this function gets
   const filteredData = await compareDates(samePurchaseCustomers)  //check the difference in dates purchsed, THIS GIVES THE ACTUAL SUGGESTION
   const arrayOfFilteredData = await utils.makeObjectintoArray(filteredData)
   await dbUtils.appendNewDataToMongo(arrayOfFilteredData, custCollection)
-  
-  const subscriptions = await getDataWithAuth(`${baseUrl}/rest/V1/subscription/search?searchCriteria[pageSize]=0`)
+
+  const subscriptions = await getDataWithAuth(`${baseUrl}/rest/V1/subscription/search?searchCriteria[pageSize]=0`)  //pagesize 0 gets all
   const subData = await dbUtils.appendSubscriptionsToCustomers(subscriptions.data.items, custCollection)
 
   currentDate = new Date();  //create a timestamp of last data pull
-  con('FINISHED', arrayOfFilteredData.length)
+  console.log('FINISHED WITH CRON', arrayOfFilteredData.length)
   return filteredData
 }
 
@@ -365,27 +360,33 @@ async function getData(suffix){
 function organizeData(customersByAddress){  //FUNCTION THAT COMPARES ALL ORDERS MADE BY ONE PERSON FOR SIMILARITIES IN PRODUCTS PURCHASED
   let result = [];
   for (customer in customersByAddress){  // loop over cust obj, which is orders made by same email (get a single customer at a  time)
-    const customerPurchasedItems = []
-    customersByAddress[customer].map(purchases =>{  //loop through orders made by cust
-      purchases.items.map(purchase => {  //loop through items purchsed
-        customerPurchasedItems.push({
-          productName : purchase.name,
-          sku : purchase.sku,
-          qtyOrdered : purchase.qty_ordered,
-          createdAt : purchases.createdAt,
-          price : purchase.price
+    // console.log('ordernum', customersByAddress[customer])
+    // console.log('ordernum', customersByAddress[customer][0].orderNumber)
+
+      const customerPurchasedItems = []
+      customersByAddress[customer].map(purchases =>{  //loop through orders made by cust
+        // console.log(purchases)
+        purchases.items.map(purchase => {  //loop through items purchsed
+          customerPurchasedItems.push({
+            productName : purchase.name,
+            sku : purchase.sku,
+            qtyOrdered : purchase.qty_ordered,
+            createdAt : purchases.createdAt,
+            price : purchase.price,
+            orderNumber: purchases.orderNumber
+          })
         })
       })
-    })
-    customerPurchasedItems.sort(utils.compareSKU) //group purchases of same item together
-    result.push({
-      address : customersByAddress[customer][0].address.street[0],
-      name : customersByAddress[customer][0].name,
-      email : customersByAddress[customer][0].email,
-      addressOthers : customersByAddress[customer][0].address,
-      purchasedItems : customerPurchasedItems,
-      // orderNumber: customersByAddress[customer][0].orderNumber
-    })
+      customerPurchasedItems.sort(utils.compareSKU) //group purchases of same item together
+      result.push({
+        address : customersByAddress[customer][0].address.street[0],
+        name : customersByAddress[customer][0].name,
+        email : customersByAddress[customer][0].email,
+        addressOthers : customersByAddress[customer][0].address,
+        purchasedItems : customerPurchasedItems,
+        // orderNumber: customersByAddress[customer][0].orderNumber
+      })
+
   }
   return result
 }
@@ -405,7 +406,7 @@ function comparePurchases(customersArr){
             sku: item.sku,
             price: item.price,
             timesPurchased: 2,
-            purchaseInstances: [{qtyOrdered: prevItem.qtyOrdered, datesPurchased: prevItem.createdAt}, {qtyOrdered: item.qtyOrdered, datesPurchased: item.createdAt}],
+            purchaseInstances: [{qtyOrdered: prevItem.qtyOrdered, datesPurchased: prevItem.createdAt, orderNumber: prevItem.orderNumber}, {qtyOrdered: item.qtyOrdered, datesPurchased: item.createdAt, orderNumber: item.orderNumber}],
             qtyOrdered: [prevItem.qtyOrdered, item.qtyOrdered],
             datesPurchased: [prevItem.createdAt, item.createdAt]
           }
@@ -417,7 +418,7 @@ function comparePurchases(customersArr){
             sku: item.sku,
             price: item.price,
             timesPurchased: 1,
-            purchaseInstances: [{qtyOrdered: prevItem.qtyOrdered + item.qtyOrdered, datesPurchased: item.createdAt}],
+            purchaseInstances: [{qtyOrdered: prevItem.qtyOrdered + item.qtyOrdered, datesPurchased: item.createdAt, orderNumber: item.orderNumber}],
             qtyOrdered: [prevItem.qtyOrdered + item.qtyOrdered], //add them together instead of adding separately bc they are same day and should be treated as 1 piurchase
             datesPurchased: [item.createdAt]  //we dont need prev date bc it was the same
           }
@@ -427,7 +428,7 @@ function comparePurchases(customersArr){
         if(prevItem.createdAt.split(' ')[0] !== item.createdAt.split(' ')[0]){  //if the items weren't bought at the same time
           // console.log('NOTE BOUGHT AT SAME TIME AFTER FIRST')
           customer.multiPurchasedItems[item.sku].timesPurchased++
-          customer.multiPurchasedItems[item.sku].purchaseInstances.push({qtyOrdered: item.qtyOrdered, datesPurchased: item.createdAt})
+          customer.multiPurchasedItems[item.sku].purchaseInstances.push({qtyOrdered: item.qtyOrdered, datesPurchased: item.createdAt, orderNumber: item.orderNumber})
           customer.multiPurchasedItems[item.sku].qtyOrdered.push(item.qtyOrdered)
           customer.multiPurchasedItems[item.sku].datesPurchased.push(item.createdAt)
           count++
@@ -492,7 +493,9 @@ function getMultiplePurchaseCustomerData(orders){
     }
   }
   const dataByAddress = {}
+  orders = orders.filter(order => order.orderNumber !== undefined ? true : false)
   orders.map(order => { 
+    // console.log('order', order)
     if (order.address.street[0] == prevOrder.address.street[0]){  //if there are multiple purchases by saem address
       if (!dataByAddress.hasOwnProperty(order.address.street[0])){  //if the databyemail obj does already include this order, add the prev as well
         dataByAddress[order.address.street[0]] = [prevOrder]

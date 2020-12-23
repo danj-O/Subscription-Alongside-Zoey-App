@@ -2,6 +2,7 @@ function getSuggestions(data){
   data.map(customer => {
     customer.suggestedItems.map(item => {
       item.purchaseInstances.sort(compareDates)  //sort the dates for comparing
+      // console.log(item.purchaseInstances)
       let prevDate = null;
       const intervalsArray = [] //will fill with suggested intervals, so if there were more than two purchases, we need to compare them and find the most suitable option
 

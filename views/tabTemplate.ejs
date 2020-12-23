@@ -16,6 +16,7 @@
 
         
         <% for(customer in customerPurchasesArr) { 
+          var addressID = customerPurchasesArr[customer].address.split(' ').join()
           var custInstancesArr = customerPurchasesArr[customer].suggestedItems.filter(item =>{
             return item.status == pagePath
           })
@@ -28,7 +29,7 @@
   
               <p class="address"><%= customerPurchasesArr[customer].address %>, <%= customerPurchasesArr[customer].addressOthers.city %>, <%= customerPurchasesArr[customer].addressOthers.region %> <%= customerPurchasesArr[customer].addressOthers.postcode %></p>
               
-              <div class="customer-box">
+              <div id="<%= addressID %>" class="customer-box">
                 <div class="customer-info">
                   <p>Address: <%= customerPurchasesArr[customer].address %>, <%= customerPurchasesArr[customer].addressOthers.city %>, <%= customerPurchasesArr[customer].addressOthers.region %> <%= customerPurchasesArr[customer].addressOthers.postcode %></p>
                   <p><%= customerPurchasesArr[customer].name %></p>
@@ -62,11 +63,16 @@
                       <p>SKU: <%= customerPurchasesArr[customer].suggestedItems[item].sku %></p>
                       <p>Price: $<%= customerPurchasesArr[customer].suggestedItems[item].price %></p>
                       <p>Times Purchased: <%= customerPurchasesArr[customer].suggestedItems[item].timesPurchased %></p>
-                      <div>
+                      <div class="purchase-instances-container">
                           <h4>Purchase Instances: </h4>
-                          <% for(instance in customerPurchasesArr[customer].suggestedItems[item].purchaseInstances) { %>
-                            <p>qtyOrdered: <%= customerPurchasesArr[customer].suggestedItems[item].purchaseInstances[instance].qtyOrdered %></p>
-                            <p>datesPurchased:<%= customerPurchasesArr[customer].suggestedItems[item].purchaseInstances[instance].datesPurchased %></p>
+                          <% for(instance in customerPurchasesArr[customer].suggestedItems[item].purchaseInstances) { 
+                            var datesPurchased = customerPurchasesArr[customer].suggestedItems[item].purchaseInstances[instance].datesPurchased.split(' ')[0]
+                          %>
+                            <div class="purchase-instances <%=  %>">
+                              <p>Dates Purchased: <%= datesPurchased %></p>
+                              <p>Qty Ordered: <%= customerPurchasesArr[customer].suggestedItems[item].purchaseInstances[instance].qtyOrdered %></p>
+                              <p>Order Number:<%= customerPurchasesArr[customer].suggestedItems[item].purchaseInstances[instance].orderNumber %></p>
+                            </div>
                           <% } %>
                       </div>
                       <p><span style="font-weight: 600;">Intervals Between Purchases(wks):</span> <%= customerPurchasesArr[customer].suggestedItems[item].suggest %></p>
@@ -106,14 +112,19 @@
               <div class="others">
                 <h4 class="sub-head">OTHER Subscriptions OR Suggestions not seen on this page</h4>
                 <%
-                for(item in others){
-                %>
-                  <div class="single-other">
-                    <p style="float: left; padding-top: 10px;"><%= others[item].productName %></p>
-                    <p class="status <%= others[item].status %>" style="float: right;">STATUS: <%= others[item].status %></p>
-                    <p style="clear: both;"></p>
-                  </div>
-                <%
+                if(others.length < 1){
+                  %> THIS ADDRESS DOES NOT CONTAIN OTHER DATA IN DATABASE <%
+                } else {
+                  for(item in others){
+                  %>
+                    <div class="single-other">
+                      
+                      <p style="float: left; padding-top: 10px;"><a href="/<%= others[item].status == 'new' ? '' : others[item].status %>#<%= addressID %>"><%= others[item].productName %></a></p>
+                      <p class="status <%= others[item].status %>" style="float: right;">STATUS: <%= others[item].status %></p>
+                      <p style="clear: both;"></p>
+                    </div>
+                  <%
+                  }
                 }
                 %>
               </div>
