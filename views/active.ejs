@@ -62,15 +62,19 @@
                   <div class="single-customer-purchased-item">
                     <div class="single-customer-purchase">
                       <p><span style="font-weight: 600;">Product:</span> <%= customerPurchasesArr[customer].subscriptions[item].productName %></p>
+                      <p>Order Number: <%= customerPurchasesArr[customer].subscriptions[item].orderId %></p>
                       <p>Subscription Number: <%= customerPurchasesArr[customer].subscriptions[item].subNum %></p>
                       <p>Price: $<%= customerPurchasesArr[customer].subscriptions[item].subtotal %></p>
+                      <p>Created On: <%= customerPurchasesArr[customer].subscriptions[item].created_at.split(' ')[0] %></p>
+                      <p>Last Run: <%= customerPurchasesArr[customer].subscriptions[item].last_run.split(' ')[0] %></p>
+                      <p>Next Run: <%= customerPurchasesArr[customer].subscriptions[item].next_run.split(' ')[0] %></p>
                       <p>Run Count: <%= customerPurchasesArr[customer].subscriptions[item].run_count %></p>
                       <p><span style="font-weight: 600;">Interval:</span> <%= customerPurchasesArr[customer].subscriptions[item].interval %></p>
                     </div>
     
                     <div class="single-purchase-edit-box">
                       <p class="status purchase-status <%= pagePath %>">STATUS: <%= customerPurchasesArr[customer].subscriptions[item].status %></p>
-                      <form action="/changeStatus/<%= customerPurchasesArr[customer].address %>" method="POST">
+                      <!-- <form action="/changeStatus/<%= customerPurchasesArr[customer].address %>" method="POST">
                         <select name="status" id="status">
                           <option value="new">--New Suggestion --</option>
                           <option value="contacted">Contacted</option>
@@ -80,7 +84,7 @@
                         </select>
                         <input type="hidden" name="subNum" value="<%= customerPurchasesArr[customer].subscriptions[item].subNum %>">
                         <input type="submit" value="CHANGE STATUS">
-                      </form>
+                      </form> -->
 
                       <p><span style="font-weight: 600;">NOTES:</span> <%= customerPurchasesArr[customer].subscriptions[item].notes %></p>
                       
@@ -100,14 +104,18 @@
               <div class="others">
                 <h4 class="sub-head">OTHER Subscriptions OR Suggestions not seen on this page(need to add subscriptions to tabtemp and suggestions to activetemp)</h4>
                 <%
-                for(item in others){
-                %>
-                  <div class="single-other">
-                    <p style="float: left; padding-top: 10px;"><%= others[item].productName %></p>
-                    <p class="status <%= others[item].status %>" style="float: right;">STATUS: <%= others[item].status %></p>
-                    <p style="clear: both;"></p>
-                  </div>
-                <%
+                if(others.length < 1){
+                  %> THIS ADDRESS DOES NOT CONTAIN OTHER DATA IN DATABASE <%
+                } else {
+                  for(item in others){
+                  %>
+                    <div class="single-other">
+                      <p style="float: left; padding-top: 10px;"><%= others[item].productName %></p>
+                      <p class="status <%= others[item].status %>" style="float: right;">STATUS: <%= others[item].status %></p>
+                      <p style="clear: both;"></p>
+                    </div>
+                  <%
+                  }
                 }
                 %>
               </div>
