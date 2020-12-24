@@ -17,11 +17,10 @@ async function appendNewDataToMongo(m2DataArray, collection){  //compare the two
           m2Item.status = correspondingDbItem.status
           m2Item.notes = correspondingDbItem.notes
         })
-        // console.log('correspondingM2Customer', correspondingM2Customer)
-        // console.log('dbCustomer', dbCustomer)
       }
     })
     const dataWithSuggestions = utils.getSuggestions(m2DataArray)  //get the suggested interval for all data before putting back into db
+    // const dataWithRevenuePerMonth = utils.getRevenue(dataWithSuggestions)  //this func gets the reve
     await upsertMany(dataWithSuggestions, collection)
   } catch (err){
     console.log("ERROR", err)

@@ -41,10 +41,10 @@
                 </div>
     
                 <div class="cust-form">
-                  <p>CUSTOMER NOTES: <%= customerPurchasesArr[customer].notes %></p>
+                  <p>CUSTOMER NOTES (add or append and press update)</p>
                   <form action="/addNote/<%= customerPurchasesArr[customer].address %>" method="post">
-                    <textarea name="addNote" type="text" placeholder="Add A Note About The Customer"></textarea>
-                    <input type="submit" value="ADD NOTE">
+                    <textarea name="addNote" type="text"><%= customerPurchasesArr[customer].notes %></textarea>
+                    <input type="submit" value="UPDATE NOTES">
                     <input type="hidden" name="pagePath" value="<%= pagePath %>">
                   </form>
                 </div>
@@ -86,11 +86,12 @@
                         <input type="submit" value="CHANGE STATUS">
                       </form> -->
 
-                      <p><span style="font-weight: 600;">NOTES:</span> <%= customerPurchasesArr[customer].subscriptions[item].notes %></p>
+                      <p><span style="font-weight: 600;">PURCHASE SPECIFIC NOTES (add or append and press update)</span> </p>
                       
                       <form action="/addSubNote/<%= customerPurchasesArr[customer].address %>" method="post">
-                        <textarea name="addSubNote" type="text" placeholder="<%=  %>Add A Note About The Subscription <%= customerPurchasesArr[customer].subscriptions[item].notes %>"></textarea>
-                        <input type="submit" value="ADD NOTE">
+                        <!-- <textarea name="addSubNote" type="text" placeholder="<%=  %>Add A Note About The Subscription <%= customerPurchasesArr[customer].subscriptions[item].notes %>"></textarea> -->
+                        <textarea name="addSubNote" type="text"><%= customerPurchasesArr[customer].subscriptions[item].notes %></textarea>
+                        <input type="submit" value="UPDATE NOTES">
                         <input type="hidden" name="pagePath" value="<%= pagePath %>">
                         <input type="hidden" name="subNum" value="<%= customerPurchasesArr[customer].subscriptions[item].subNum %>">
                       </form>
