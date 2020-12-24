@@ -9,6 +9,19 @@
     <%- include('header.ejs', {pagePath: pagePath}) %>
   </header>
 
+  <%
+  var revenue = 0
+  for(customer in customerPurchasesArr){
+    for(item in customerPurchasesArr[customer].suggestedItems){
+      if(customerPurchasesArr[customer].suggestedItems[item].status == pagePath){
+        revenue += customerPurchasesArr[customer].suggestedItems[item].revenuePerMonth
+      }
+    }
+  }
+  %>
+  <div class="information-container">
+    <p>Expected revenue per month from all items on this page: $<%= revenue.toFixed(2) %></p>
+  </div>
   <div class="main-container">
     <% if (customerPurchasesArr.length < 1){ %>
       <p class="loading-p">THERE ARE NO <%= pageTitle %> AT THIS TIME.</p>
@@ -38,10 +51,10 @@
                 </div>
     
                 <div class="cust-form">
-                  <p>CUSTOMER NOTES: <%= customerPurchasesArr[customer].notes %></p>
+                  <p>CUSTOMER NOTES (add or append and press update)</p>
                   <form action="/addNote/<%= customerPurchasesArr[customer].address %>" method="post">
-                    <textarea name="addNote" type="text" placeholder="Add A Note About The Customer"></textarea>
-                    <input type="submit" value="ADD NOTE">
+                    <textarea name="addNote" type="text"><%= customerPurchasesArr[customer].notes %></textarea>
+                    <input type="submit" value="UPDATE NOTES">
                     <input type="hidden" name="pagePath" value="<%= pagePath %>">
                   </form>
                 </div>
@@ -63,6 +76,7 @@
                       <p>SKU: <%= customerPurchasesArr[customer].suggestedItems[item].sku %></p>
                       <p>Price: $<%= customerPurchasesArr[customer].suggestedItems[item].price %></p>
                       <p>Times Purchased: <%= customerPurchasesArr[customer].suggestedItems[item].timesPurchased %></p>
+                      <p>Revenue Per Month: $<%= customerPurchasesArr[customer].suggestedItems[item].revenuePerMonth.toFixed(2) %></p>
                       <div class="purchase-instances-container">
                           <h4>Purchase Instances: </h4>
                           <% for(instance in customerPurchasesArr[customer].suggestedItems[item].purchaseInstances) { 
@@ -79,24 +93,26 @@
                     </div>
     
                     <div class="single-purchase-edit-box">
-                      <p class="status purchase-status <%= pagePath %>">STATUS: <%= customerPurchasesArr[customer].suggestedItems[item].status %></p>
-                      <form action="/changeStatus/<%= customerPurchasesArr[customer].address %>" method="POST">
-                        <select name="status" id="status">
-                          <option value="new">--New Suggestion --</option>
-                          <option value="contacted">Contacted</option>
-                          <option value="potential">Potential</option>
-                          <!-- <option value="paused">Paused</option> -->
-                          <option value="not-interested">Not Interested</option>
-                        </select>
-                        <input type="hidden" name="purchaseSku" value="<%= customerPurchasesArr[customer].suggestedItems[item].sku %>">
-                        <input type="submit" value="CHANGE STATUS">
-                      </form>
+                      <div class="status-container">
+                        <p class="status purchase-status <%= pagePath %>">STATUS: <%= customerPurchasesArr[customer].suggestedItems[item].status %></p>
+                        <form action="/changeStatus/<%= customerPurchasesArr[customer].address %>" method="POST">
+                          <select name="status" id="status">
+                            <option value="new">--New Suggestion --</option>
+                            <option value="contacted">Contacted</option>
+                            <option value="potential">Potential</option>
+                            <!-- <option value="paused">Paused</option> -->
+                            <option value="not-interested">Not Interested</option>
+                          </select>
+                          <input type="hidden" name="purchaseSku" value="<%= customerPurchasesArr[customer].suggestedItems[item].sku %>">
+                          <input class="change-status-btn" type="submit" value="CHANGE STATUS">
+                        </form>
+                      </div>
 
-                      <p><span style="font-weight: 600;">NOTES:</span> <%= customerPurchasesArr[customer].suggestedItems[item].notes %></p>
+                      <p><span style="font-weight: 600;">PURCHASE SPECIFIC NOTES (add or append and press update)</span></p>
                       
                       <form action="/addNote/<%= customerPurchasesArr[customer].address %>" method="post">
-                        <textarea name="addNote" type="text" placeholder="<%=  %>Add A Note About The Purchase <%= customerPurchasesArr[customer].suggestedItems[item].notes %>"></textarea>
-                        <input type="submit" value="ADD NOTE">
+                        <textarea name="addNote" type="text"><%= customerPurchasesArr[customer].suggestedItems[item].notes %></textarea>
+                        <input type="submit" value="UPDATE NOTES">
                         <input type="hidden" name="pagePath" value="<%= pagePath %>">
                         <input type="hidden" name="purchaseSku" value="<%= customerPurchasesArr[customer].suggestedItems[item].sku %>">
                       </form>
@@ -130,7 +146,6 @@
               </div>
 
             </div>
-
           <%}
         %>
 
