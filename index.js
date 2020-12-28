@@ -206,6 +206,7 @@ app.post('/login', (req, res) => {
 
 app.post('/changeStatus/:custAddress', userAuth.verifyToken, async (req, res) => { //adds a status to cust object that will decide which tab it goes into
   const collection = req.app.locals.custCollection;
+  const addressID = req.params.custAddress.split(' ').join()
   console.log(req.body.status, req.params, req.body.purchaseSku, typeof(req.body.purchaseSku))
   // const filter = {"address": req.params.custAddress}
   const filter = {"address": req.params.custAddress, "suggestedItems.sku": req.body.purchaseSku}
@@ -221,14 +222,15 @@ app.post('/changeStatus/:custAddress', userAuth.verifyToken, async (req, res) =>
 
     const cursor = await collection.findOneAndUpdate(filter, update, options)
     if(req.body.status == 'new'){
-      res.redirect(`/`)
+      res.redirect(`/#${addressID}`)
     } else {
-      res.redirect(`/${req.body.status}`)
+      res.redirect(`/${req.body.status}#${addressID}`)
     }
 })
 
 app.post('/addNote/:custAddress', userAuth.verifyToken, async (req, res) => { // adds notes to customers
   const collection = req.app.locals.custCollection;
+  const addressID = req.params.custAddress.split(' ').join()
   let filter = {}
   let update = {}
   if(req.body.purchaseSku == undefined){
@@ -249,39 +251,41 @@ app.post('/addNote/:custAddress', userAuth.verifyToken, async (req, res) => { //
   const options = {upsert:true}
     const cursor = collection.findOneAndUpdate(filter, update, options)
     if(req.body.pagePath == 'new'){
-      res.redirect(`/`)
+      res.redirect(`/#${addressID}`)
     } else {
-      res.redirect(`/${req.body.pagePath}`)
+      res.redirect(`/${req.body.pagePath}#${addressID}`)
     }
 })
 
-app.post('/addSubNote/:custAddress', userAuth.verifyToken, async (req, res) => { // adds notes to customers
-  const collection = req.app.locals.custCollection;
-  let filter = {}
-  let update = {}
-  if(req.body.subNum == undefined){
-    filter = {address: req.params.custAddress}
-    update = {
-      $set: {
-        "notes": req.body.addSubNote
-      }
-    }
-  } else {
-    filter = {address: req.params.custAddress, "subscriptions.subNum": req.body.subNum}
-    update = {
-      $set: {
-        "subscriptions.$.notes": req.body.addSubNote
-      }
-    }
-  }
-  const options = {upsert:true}
-    const cursor = collection.findOneAndUpdate(filter, update, options)
-    if(req.body.pagePath == 'new'){
-      res.redirect(`/`)
-    } else {
-      res.redirect(`/${req.body.pagePath}`)
-    }
-})
+// app.post('/addSubNote/:custAddress', userAuth.verifyToken, async (req, res) => { // adds notes to customers
+//   const collection = req.app.locals.custCollection;
+//   const addressID = req.params.custAddress.split(' ').join()
+//   console.log(addressID)
+//   let filter = {}
+//   let update = {}
+//   if(req.body.subNum == undefined){
+//     filter = {address: req.params.custAddress}
+//     update = {
+//       $set: {
+//         "notes": req.body.addSubNote
+//       }
+//     }
+//   } else {
+//     filter = {address: req.params.custAddress, "subscriptions.subNum": req.body.subNum}
+//     update = {
+//       $set: {
+//         "subscriptions.$.notes": req.body.addSubNote
+//       }
+//     }
+//   }
+//   const options = {upsert:true}
+//     const cursor = collection.findOneAndUpdate(filter, update, options)
+//     if(req.body.pagePath == 'new'){
+//       res.redirect(`/#${addressID}`)
+//     } else {
+//       res.redirect(`/${req.body.pagePath}#${addressID}`)
+//     }
+// })
 
 app.listen(PORT, function(){
   console.log(`Server is running on ${PORT}`)
