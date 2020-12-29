@@ -16,8 +16,6 @@ var cookieParser = require('cookie-parser');
 var app = express();
 const url = process.env.MONGO_URL;
 
-// let custCollection;
-// let subsCollection;
 MongoClient.connect(url)
 .then(client =>{
   const db = client.db('ziptie');
@@ -25,10 +23,15 @@ MongoClient.connect(url)
   const subsCollection = db.collection('subscriptions');
   app.locals.custCollection = custCollection;
   app.locals.subsCollection = subsCollection;
+  // const custData = getCustData()
+  // console.log(custData)
   getNewData(custCollection, subsCollection)
-});
+})
 
-// const client = new MongoClient(url, {poolSize: 50, useUnifiedTopology: true, useNewUrlParser: true});
+async function getCustData(url){
+  const data = await getDataWithAuth('https://2ieb7j62xark0rjf.mojostratus.io/rest/V1/tokenbase/5')
+  console.log(data)
+}
 
 app.use(cors())
 app.set('view engine','ejs');
@@ -36,6 +39,7 @@ app.use(express.static(__dirname + '/'));
 app.use(bodyParser.urlencoded({
   extended: true
 }));
+app.use(bodyParser.json());
 app.use(cookieParser());
 
 app.get('/', userAuth.verifyToken, async function(req, res, next){
