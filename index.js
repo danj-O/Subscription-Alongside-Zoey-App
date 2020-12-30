@@ -1,4 +1,5 @@
 require('dotenv').config();
+var CronJob = require('cron').CronJob;
 var PORT = process.env.PORT || 3000;
 const Oauth1Helper = require('./auth')
 const jwt = require('jsonwebtoken')
@@ -12,6 +13,7 @@ const userAuth = require('./userAuth')
 const dbUtils = require('./mongo')
 const MongoClient = require('mongodb').MongoClient;
 var cookieParser = require('cookie-parser');
+// const { CronJob } = require('cron');
 
 var app = express();
 const url = process.env.MONGO_URL;
@@ -21,11 +23,13 @@ MongoClient.connect(url)
   const db = client.db('ziptie');
   const custCollection = db.collection('customers');
   const subsCollection = db.collection('subscriptions');
+  const cronCollection = db.collection('cron');
   app.locals.custCollection = custCollection;
   app.locals.subsCollection = subsCollection;
+  app.locals.cronCollection = cronCollection;
   // const custData = getCustData()
   // console.log(custData)
-  getNewData(custCollection, subsCollection)
+  getNewData(custCollection, subsCollection, cronCollection)
 })
 
 async function getCustData(url){
@@ -303,10 +307,16 @@ const getDataFrom = 6 //months ago
 const baseUrl = 'https://2ieb7j62xark0rjf.mojostratus.io'
 let currentDate
 
-async function getNewData(custCollection, subsCollection){  //this function gets all data from m2 and removes any items that are repeats  in the db
+// var job = new CronJob('* * * * * *', function() {
+//   console.log('You will see this message every second');
+// }, null, true, 'America/Los_Angeles');
+// job.start();
+
+async function getNewData(custCollection, subsCollection, cronCollection){  //this function gets all data from m2 and removes any items that are repeats  in the db
   await console.log('Started cron, this will take some time...')
   
   // const subscriptions = await getDataWithAuth(`${baseUrl}/rest/V1/subscription/search?searchCriteria[pageSize]=0`)
+  // console.log(subscriptions.data)
   // const subData = await dbUtils.appendSubscriptionsToCustomers(subscriptions.data.items, custCollection)
 
   const dateFrom = utils.calculateDateFrom(getDataFrom)
@@ -325,6 +335,7 @@ async function getNewData(custCollection, subsCollection){  //this function gets
   const subData = await dbUtils.appendSubscriptionsToCustomers(subscriptions.data.items, custCollection)
 
   currentDate = new Date();  //create a timestamp of last data pull
+  dbUtils.sendCronUpdateToMongo(subscriptions.data.items.length + arrayOfFilteredData.length, cronCollection)
   console.log('FINISHED WITH CRON', arrayOfFilteredData.length)
   return filteredData
 }
