@@ -318,7 +318,7 @@ async function getNewData(custCollection, subsCollection, cronCollection){  //th
   // const subscriptions = await getDataWithAuth(`${baseUrl}/rest/V1/subscription/search?searchCriteria[pageSize]=0`)
   // console.log(subscriptions.data)
   // const subData = await dbUtils.appendSubscriptionsToCustomers(subscriptions.data.items, custCollection)
-
+  
   const dateFrom = utils.calculateDateFrom(getDataFrom)
   
   const orders = await getData(`/rest/V1/orders?searchCriteria[filter_groups][0][filters][0][field]=created_at&searchCriteria[filter_groups][0][filters][0][value]=${dateFrom[0]}-${dateFrom[1]}-01 00:00:00&searchCriteria[filter_groups][0][filters][0][condition_type]=gt`) 
@@ -330,10 +330,10 @@ async function getNewData(custCollection, subsCollection, cronCollection){  //th
   const filteredData = await compareDates(samePurchaseCustomers)  //check the difference in dates purchsed, THIS GIVES THE ACTUAL SUGGESTION
   const arrayOfFilteredData = await utils.makeObjectintoArray(filteredData)
   await dbUtils.appendNewDataToMongo(arrayOfFilteredData, custCollection)
-
+  
   const subscriptions = await getDataWithAuth(`${baseUrl}/rest/V1/subscription/search?searchCriteria[pageSize]=0`)  //pagesize 0 gets all
   const subData = await dbUtils.appendSubscriptionsToCustomers(subscriptions.data.items, custCollection)
-
+  
   currentDate = new Date();  //create a timestamp of last data pull
   dbUtils.sendCronUpdateToMongo(subscriptions.data.items.length + arrayOfFilteredData.length, cronCollection)
   console.log('FINISHED WITH CRON', arrayOfFilteredData.length)
