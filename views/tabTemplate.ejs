@@ -44,10 +44,11 @@
               
               <div id="<%= addressID %>" class="customer-box">
                 <div class="customer-info">
+                  <h3>CUSTOMER INFORMATION</h3>
                   <p>Address: <%= customerPurchasesArr[customer].address %>, <%= customerPurchasesArr[customer].addressOthers.city %>, <%= customerPurchasesArr[customer].addressOthers.region %> <%= customerPurchasesArr[customer].addressOthers.postcode %></p>
-                  <p><%= customerPurchasesArr[customer].name %></p>
-                  <p><%= customerPurchasesArr[customer].email %></p>
-                  <p>Phone: <%= customerPurchasesArr[customer].addressOthers.telephone %></p>
+                  <p>Name: <%= customerPurchasesArr[customer].name %></p>
+                  <p>Email: <a href="mailto:<%= customerPurchasesArr[customer].email %>"><%= customerPurchasesArr[customer].email %></a></p>
+                  <p>Phone: <a href="tel:<%= customerPurchasesArr[customer].addressOthers.telephone %>"><%= customerPurchasesArr[customer].addressOthers.telephone %></a></p>
                 </div>
     
                 <div class="cust-form">
@@ -97,9 +98,12 @@
                         <p class="status purchase-status <%= pagePath %>">STATUS: <%= customerPurchasesArr[customer].suggestedItems[item].status %></p>
                         <form action="/changeStatus/<%= customerPurchasesArr[customer].address %>" method="POST">
                           <select name="status" id="status">
-                            <option value="new">--New Suggestion --</option>
+                            <option value="new">New</option>
                             <option value="contacted">Contacted</option>
                             <option value="potential">Potential</option>
+                            <option value="" disabled>Active</option>
+                            <option value="" disabled>Paused</option>
+                            <option value="" disabled>Canceled</option>
                             <!-- <option value="paused">Paused</option> -->
                             <option value="not-interested">Not Interested</option>
                           </select>

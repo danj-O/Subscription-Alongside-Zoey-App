@@ -4,6 +4,20 @@ const axios = require('axios')
 
 const baseUrl = 'https://2ieb7j62xark0rjf.mojostratus.io'
 
+async function sendCronUpdateToMongo(queryLength, collection){
+  let date = new Date();
+  const query = { date_run: date }
+    const options = { upsert: true };
+    const update = {
+      $set: {
+        date_run: date,
+        queryLength: queryLength || 0,
+        isHeroku: true
+      }
+    }
+    const result = await collection.updateOne(query, update, options)
+}
+
 async function appendNewDataToMongo(m2DataArray, collection){  //compare the two sets of data, append additions to db  ADDING THE DB DATA TO THE NEW DATA
   await m2DataArray.map(async customer => {customer.suggestedItems.map(item => { item.status = 'new' })})
   try {
@@ -153,7 +167,8 @@ module.exports = {
   upsertMany: upsertMany,
   appendNewDataToMongo: appendNewDataToMongo,
   // saveSubscriptionsToMongo: saveSubscriptionsToMongo,
-  appendSubscriptionsToCustomers: appendSubscriptionsToCustomers
+  appendSubscriptionsToCustomers: appendSubscriptionsToCustomers,
+  sendCronUpdateToMongo: sendCronUpdateToMongo
 }
 
 

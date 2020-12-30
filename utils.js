@@ -207,9 +207,6 @@ function calculateDateFrom(getDataFrom){
   return [year, month]
 }
 
-function getRevenue(data){
-
-}
 
 function getAverage(numbers){  //takes an array of numbers and returns the average
   const average = numbers.reduce((a, b) => (a + b)) / numbers.length;
@@ -224,7 +221,6 @@ module.exports = {
   convertToCSV : convertToCSV,
   sendNotifications : sendNotifications,
   calculateDateFrom : calculateDateFrom,
-  getRevenue : getRevenue,
   makeObjectintoArray: makeObjectintoArray,
   getSuggestions: getSuggestions
 }
