@@ -3,8 +3,8 @@
   <h1 class="<%= pagePath %>"><%= pageTitle %></h1>
   <p class="logged-in-p">You are currently logged in</p>
   <p style="font-style: italic;">You will be periodically logged out for security reasons.</p>
-  <p>There are currently <%= customerPurchasesArr.length%> customers in this tab.</p>
-  <p>Last Cron Run: <%= currentDate %></p>
+  <p>There are <%= customerPurchasesArr.length%> customers in this tab.</p>
+  <p>Last Cron Run: <%= currentDate || '*currently running*' %></p>
 </div>
 <div class="tab-nav">
   <a href="/" class="new tab-btn tab">New Suggestions</a>

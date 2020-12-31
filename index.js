@@ -18,9 +18,9 @@ var cookieParser = require('cookie-parser');
 
 var app = express();
 const url = process.env.MONGO_URL;
-
+let currentDate;
 MongoClient.connect(url)
-.then(client =>{
+.then(async client =>{
   const db = client.db('ziptie');
   const custCollection = db.collection('customers');
   const subsCollection = db.collection('subscriptions');
@@ -30,7 +30,8 @@ MongoClient.connect(url)
   app.locals.cronCollection = cronCollection;
   // const custData = getCustData()
   // console.log(custData)
-  cronUtil.getNewData(custCollection, subsCollection, cronCollection)
+  currentDate = await cronUtil.getNewData(custCollection, subsCollection, cronCollection)
+  console.log(currentDate)
 })
 
 // async function getCustData(url){
