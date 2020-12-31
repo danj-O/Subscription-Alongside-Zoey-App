@@ -66,6 +66,11 @@
 
                 <% var others = [] %>
                 <% 
+                if(customerPurchasesArr[customer].subscriptions){
+                  for(item in customerPurchasesArr[customer].subscriptions){
+                    others.push(customerPurchasesArr[customer].subscriptions[item])
+                  }
+                }
                 for(item in customerPurchasesArr[customer].suggestedItems){ 
                   if(customerPurchasesArr[customer].suggestedItems[item].status !== pagePath){
                     others.push(customerPurchasesArr[customer].suggestedItems[item])

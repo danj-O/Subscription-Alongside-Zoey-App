@@ -56,6 +56,11 @@
                 <h4 class="sub-head">THIS CUSTOMER CURRENTLY HAS THESE SUBSCRIPTIONS</h4>
                 <% var others = [] %>
                 <% 
+                if(customerPurchasesArr[customer].suggestedItems){
+                  for(item in customerPurchasesArr[customer].suggestedItems){
+                    others.push(customerPurchasesArr[customer].suggestedItems[item])
+                  }
+                }
                 for(item in customerPurchasesArr[customer].subscriptions){ 
                   if(customerPurchasesArr[customer].subscriptions[item].status !== pagePath){
                     others.push(customerPurchasesArr[customer].subscriptions[item])

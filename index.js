@@ -9,7 +9,7 @@ var express = require('express');
 const bodyParser = require("body-parser");
 // const ObjectsToCsv = require('objects-to-csv');
 // const utils = require('./utils')
-const cronUtil = require('./scheduledJobs')
+// const cronUtil = require('./scheduledJobs')
 const userAuth = require('./userAuth')
 // const dbUtils = require('./mongo')
 const MongoClient = require('mongodb').MongoClient;
@@ -30,8 +30,8 @@ MongoClient.connect(url)
   app.locals.cronCollection = cronCollection;
   // const custData = getCustData()
   // console.log(custData)
-  currentDate = await cronUtil.getNewData(custCollection, subsCollection, cronCollection)
-  console.log(currentDate)
+  // currentDate = await cronUtil.getNewData(custCollection, subsCollection, cronCollection)
+  // console.log(currentDate)
 })
 
 // async function getCustData(url){

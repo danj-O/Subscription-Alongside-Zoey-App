@@ -55,12 +55,16 @@ async function appendSubscriptionsToCustomers(m2Data, collection){
     //get the corresponding order from m2 because it may not already exist in mongo
     const singleCustData = await getSubDataWithAuth(`${baseUrl}/rest/V1/orders?searchCriteria[filter_groups][2][filters][0][field]=increment_id&searchCriteria[filter_groups][2][filters][0][value]=${sub.orderId}&searchCriteria[filter_groups][2][filters][0][condition_type]=eq`)
     //ADD if the adress doesnt exist, move to next doc
-    if(singleCustData.data.items[0].extension_attributes.shipping_assignments[0].shipping.address.street[0]){
-      sub.address = singleCustData.data.items[0].extension_attributes.shipping_assignments[0].shipping.address.street[0]
-      sub.addressOthers = singleCustData.data.items[0].extension_attributes.shipping_assignments[0].shipping.address
-    } else {
-      sub.address = ''
-      sub.addressOthers = ''
+    try{
+      if(singleCustData.data.items[0].extension_attributes.shipping_assignments[0].shipping.address.street[0]){
+        sub.address = singleCustData.data.items[0].extension_attributes.shipping_assignments[0].shipping.address.street[0]
+        sub.addressOthers = singleCustData.data.items[0].extension_attributes.shipping_assignments[0].shipping.address
+      } else {
+        sub.address = ''
+        sub.addressOthers = ''
+      }
+    } catch(err){
+      console.log(err)
     }
     const dbCust = await collection.findOne({address: sub.address})  //finding the corresponding customer in mongo now that we have an address
     let update = {}
