@@ -1,22 +1,39 @@
 run()
 function run(){
-  console.log("RAN")
+  console.log("RUNNING CRON FILE")
 }
-// var job = new CronJob('* * * * * *', function() {
-//   console.log('You will see this message every second');
-// }, null, true, 'America/Los_Angeles');
-// job.start();
 
+require('dotenv').config();
 const utils = require('./utils')
 const Oauth1Helper = require('./auth')
 const axios = require('axios')
 const dbUtils = require('./mongo')
+const MongoClient = require('mongodb').MongoClient;
 
+const url = process.env.MONGO_URL;
+
+
+MongoClient.connect(url)
+.then(async client =>{
+  const db = client.db('ziptie');
+  const custCollection = db.collection('customers');
+  const subsCollection = db.collection('subscriptions');
+  const cronCollection = db.collection('cron');
+  // app.locals.custCollection = custCollection;
+  // app.locals.subsCollection = subsCollection;
+  // app.locals.cronCollection = cronCollection;
+  // const custData = getCustData()
+  // console.log(custData)
+  // currentDate = await getNewData(custCollection, subsCollection, cronCollection)
+  console.log(currentDate)
+})
 
 const getDataFrom = 6 //months ago
 const baseUrl = 'https://2ieb7j62xark0rjf.mojostratus.io'
 let currentDate
-
+let custCollection
+let subsCollection
+let cronCollection
 
 async function getNewData(custCollection, subsCollection, cronCollection){  //this function gets all data from m2 and removes any items that are repeats  in the db
   await console.log('Started cron, this will take some time...')
