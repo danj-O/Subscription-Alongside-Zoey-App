@@ -21,10 +21,6 @@ let currentDate
 async function getNewData(custCollection, subsCollection, cronCollection){  //this function gets all data from m2 and removes any items that are repeats  in the db
   await console.log('Started cron, this will take some time...')
   
-  // const subscriptions = await getDataWithAuth(`${baseUrl}/rest/V1/subscription/search?searchCriteria[pageSize]=0`)
-  // console.log(subscriptions.data)
-  // const subData = await dbUtils.appendSubscriptionsToCustomers(subscriptions.data.items, custCollection)
-  
   const dateFrom = utils.calculateDateFrom(getDataFrom)
   
   const orders = await getData(`/rest/V1/orders?searchCriteria[filter_groups][0][filters][0][field]=created_at&searchCriteria[filter_groups][0][filters][0][value]=${dateFrom[0]}-${dateFrom[1]}-01 00:00:00&searchCriteria[filter_groups][0][filters][0][condition_type]=gt`) 
@@ -43,7 +39,7 @@ async function getNewData(custCollection, subsCollection, cronCollection){  //th
   currentDate = new Date();  //create a timestamp of last data pull
   dbUtils.sendCronUpdateToMongo(subscriptions.data.items.length + arrayOfFilteredData.length, cronCollection)
   console.log('FINISHED WITH CRON', arrayOfFilteredData.length)
-  return filteredData
+  return currentDate
 }
 
 
@@ -85,12 +81,8 @@ async function getData(suffix){
 function organizeData(customersByAddress){  //FUNCTION THAT COMPARES ALL ORDERS MADE BY ONE PERSON FOR SIMILARITIES IN PRODUCTS PURCHASED
   let result = [];
   for (customer in customersByAddress){  // loop over cust obj, which is orders made by same email (get a single customer at a  time)
-    // console.log('ordernum', customersByAddress[customer])
-    // console.log('ordernum', customersByAddress[customer][0].orderNumber)
-
       const customerPurchasedItems = []
       customersByAddress[customer].map(purchases =>{  //loop through orders made by cust
-        // console.log(purchases)
         purchases.items.map(purchase => {  //loop through items purchsed
           customerPurchasedItems.push({
             productName : purchase.name,
@@ -242,19 +234,6 @@ async function getDataWithAuth(url){
     console.log(err)
   }
 }
-
-// async function deleteSubscription(subId){
-//   const url = `${baseUrl}/rest/V1/subscription/${subId}`
-//   try{
-//     const request = { url: url, method: "DELETE"}
-//     const authHeader = Oauth1Helper.getAuthHeaderForRequest(request);
-//     return await axios.delete( request.url, { header: authHeader })
-//   }catch(err){
-//     console.log(err)
-//   } finally {
-//     console.log(`subscription #${subId} was deleted from m2 db`)
-//   }
-// }
 
 module.exports = {
   getNewData: getNewData
