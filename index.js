@@ -18,22 +18,37 @@ var cookieParser = require('cookie-parser');
 
 var app = express();
 const url = process.env.MONGO_URL;
+
 let currentDate;
+
 MongoClient.connect(url)
 .then(async client =>{
   const db = client.db('ziptie');
   const custCollection = db.collection('customers');
   const subsCollection = db.collection('subscriptions');
   const cronCollection = db.collection('cron');
-  app.locals.custCollection = custCollection;
+  app.locals.custCollection = custCollection;  //these allow the routes to see the collection
   app.locals.subsCollection = subsCollection;
   app.locals.cronCollection = cronCollection;
   // const custData = getCustData()
   // console.log(custData)
   // currentDate = await cronUtil.getNewData(custCollection, subsCollection, cronCollection)
   // console.log(currentDate)
-})
+  await mostRecentCron(cronCollection)
+  // await console.log("make it here?", currentDate)
 
+})
+async function mostRecentCron(collection){
+  const resultArr = []
+  const cursor = await collection.find().sort({'date_run': -1}).limit(1)
+  await cursor.forEach((doc, err)=> {
+    resultArr.push(doc)
+  }, function(){
+    // console.log("thisssss", resultArr[0].date_run)
+    currentDate = JSON.parse(JSON.stringify(resultArr[0].date_run))
+    currentDate = currentDate.split('T')[0]
+  })
+};
 // async function getCustData(url){
 //   const data = await getDataWithAuth('https://2ieb7j62xark0rjf.mojostratus.io/rest/V1/tokenbase/5')
 //   console.log(data)

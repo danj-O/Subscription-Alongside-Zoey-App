@@ -24,7 +24,7 @@ MongoClient.connect(url)
   // app.locals.cronCollection = cronCollection;
   // const custData = getCustData()
   // console.log(custData)
-  // currentDate = await getNewData(custCollection, subsCollection, cronCollection)
+  currentDate = await getNewData(custCollection, subsCollection, cronCollection)
   console.log(currentDate)
 })
 
@@ -53,10 +53,10 @@ async function getNewData(custCollection, subsCollection, cronCollection){  //th
   const subscriptions = await getDataWithAuth(`${baseUrl}/rest/V1/subscription/search?searchCriteria[pageSize]=0`)  //pagesize 0 gets all
   const subData = await dbUtils.appendSubscriptionsToCustomers(subscriptions.data.items, custCollection)
   
-  currentDate = new Date();  //create a timestamp of last data pull
+  // currentDate = new Date();  //create a timestamp of last data pull
   dbUtils.sendCronUpdateToMongo(subscriptions.data.items.length + arrayOfFilteredData.length, cronCollection)
   console.log('FINISHED WITH CRON', arrayOfFilteredData.length)
-  return currentDate
+  // return currentDate
 }
 
 
