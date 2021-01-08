@@ -84,6 +84,20 @@
   padding: 20px;
   width: 50%;
 }
+.lead-btn{
+  background-color: rgb(255, 251, 0);
+  padding: 20px;
+  border: none;
+  cursor: pointer;
+}
+.lead-btn:hover{
+  background-color: rgb(255, 253, 140);
+
+}
+.lead-btn-span{
+  padding-left: 10px;
+  font-size: .8em;
+}
 .cust-form form textarea{
   height: 100px;
   width: 100%;
@@ -120,6 +134,7 @@
   /* padding: 20px 5px; */
   /* background: blue; */
 }
+
 .sub-head{
   background: #bebebe;
   padding: 10px 10px;
