@@ -263,10 +263,9 @@ app.post('/addLead/:custAddress', userAuth.verifyToken, async(req, res)=>{
   const collection = req.app.locals.custCollection;
   const addressID = req.params.custAddress.split(' ').join()
   
-  const cust = collection.find({address: req.params.custAddress})
-  cust.forEach(c => {
-    // console.log(c)
-    closeUtils.createLead(c)
+  collection.findOneAndUpdate({ address: req.params.custAddress }, { $set: { addedToClose: true } }, { returnNewDocument: true })
+  .then(updatedDocument => {
+    closeUtils.createLead(updatedDocument.value)
   })
   if(req.body.pagePath == 'new'){
     res.redirect(`/#${addressID}`)
@@ -274,6 +273,20 @@ app.post('/addLead/:custAddress', userAuth.verifyToken, async(req, res)=>{
     res.redirect(`/${req.body.pagePath}#${addressID}`)
   }
 })
+
+app.post('/removeAddedToCloseStatus/:custAddress', userAuth.verifyToken, async(req, res) => {
+  const collection = req.app.locals.custCollection;
+  const addressID = req.params.custAddress.split(' ').join()
+
+  collection.updateOne({ address: req.params.custAddress }, { $set: { addedToClose: false } }, { upsert: true })
+  if(req.body.pagePath == 'new'){
+    res.redirect(`/#${addressID}`)
+  } else {
+    res.redirect(`/${req.body.pagePath}#${addressID}`)
+  }
+})
+
+
 
 app.listen(PORT, function(){
   console.log(`Server is running on ${PORT}`)
