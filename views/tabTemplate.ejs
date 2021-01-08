@@ -52,6 +52,13 @@
                 </div>
     
                 <div class="cust-form">
+                  <form action="/addLead/<%= customerPurchasesArr[customer].address %>" method="post">
+                    <input type="hidden" name="name" value="<%= customerPurchasesArr[customer].name %>">
+                    <input type="hidden" name="email" value="<%= customerPurchasesArr[customer].email %>">
+                    <input type="hidden" name="pagePath" value="<%= pagePath %>">
+                    <input class="lead-btn" type="submit" value="ADD TO CLOSE CRM"><span class="lead-btn-span">Click here to add this customer and their suggestions to Close CRM. </span>
+                  </form>
+                  <br>
                   <p>CUSTOMER NOTES (add or append and press update)</p>
                   <form action="/addNote/<%= customerPurchasesArr[customer].address %>" method="post">
                     <textarea name="addNote" type="text"><%= customerPurchasesArr[customer].notes %></textarea>
@@ -74,6 +81,8 @@
                 for(item in customerPurchasesArr[customer].suggestedItems){ 
                   if(customerPurchasesArr[customer].suggestedItems[item].status !== pagePath){
                     others.push(customerPurchasesArr[customer].suggestedItems[item])
+                  } else if(others.some(other => other.productName == customerPurchasesArr[customer].suggestedItems[item].productName)){ %>
+                    <p><%= customerPurchasesArr[customer].subscriptions[item].productName %> is currently a Subscription.</p> <%
                   } else {
                 %>
                   <div class="single-customer-purchased-item">
