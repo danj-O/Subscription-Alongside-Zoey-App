@@ -24,13 +24,7 @@ MongoClient.connect(url)
   app.locals.custCollection = custCollection;  //these allow the routes to see the collection
   app.locals.subsCollection = subsCollection;
   app.locals.cronCollection = cronCollection;
-  // const custData = getCustData()
-  // console.log(custData)
-  // currentDate = await cronUtil.getNewData(custCollection, subsCollection, cronCollection)
-  // console.log(currentDate)
   await mostRecentCron(cronCollection)
-  // await console.log("make it here?", currentDate)
-
 })
 async function mostRecentCron(collection){
   const resultArr = []
@@ -38,15 +32,11 @@ async function mostRecentCron(collection){
   await cursor.forEach((doc, err)=> {
     resultArr.push(doc)
   }, function(){
-    // console.log("thisssss", resultArr[0].date_run)
     currentDate = JSON.parse(JSON.stringify(resultArr[0].date_run))
     currentDate = currentDate.split('T')[0]
   })
 };
-// async function getCustData(url){
-//   const data = await getDataWithAuth('https://2ieb7j62xark0rjf.mojostratus.io/rest/V1/tokenbase/5')
-//   console.log(data)
-// }
+
 
 app.use(cors())
 app.set('view engine','ejs');
@@ -60,14 +50,14 @@ app.use(cookieParser());
 app.get('/', userAuth.verifyToken, async function(req, res, next){
   const collection = req.app.locals.custCollection;
   const resultArr = []
-
   const cursor = await collection.find({
       "suggestedItems.status": 'new'
     })
     await cursor.forEach((doc, err)=> {
       resultArr.push(doc)
+      // closeUtils.queryLeads(doc)
     }, function(){
-      revenue = 0
+      // const appendedWithCloseLinks = closeUtils.queryLeads(resultArr)
       res.render('tabTemplate.ejs', { 
         customerPurchasesArr: resultArr,
         currentDate: currentDate,
@@ -76,6 +66,7 @@ app.get('/', userAuth.verifyToken, async function(req, res, next){
       })
     })
 })
+
 app.get('/contacted', userAuth.verifyToken, async function(req, res, next){
   const collection = req.app.locals.custCollection;
   const resultArr = []
@@ -94,6 +85,7 @@ app.get('/contacted', userAuth.verifyToken, async function(req, res, next){
       })
     })
 })
+
 app.get('/potential', userAuth.verifyToken, async function(req, res, next){
   const collection = req.app.locals.custCollection;
   const resultArr = []
@@ -113,6 +105,7 @@ app.get('/potential', userAuth.verifyToken, async function(req, res, next){
       })
     })
 })
+
 app.get('/not-interested', userAuth.verifyToken, async function(req, res, next){
   const collection = req.app.locals.custCollection;
   const resultArr = []
@@ -160,7 +153,6 @@ app.get('/paused', userAuth.verifyToken, async function(req, res, next){
     await cursor.forEach((doc, err)=> {
       resultArr.push(doc)
     }, function(){
-      revenue = 0
       res.render('active.ejs', { 
         customerPurchasesArr: resultArr,
         currentDate: currentDate,
@@ -169,6 +161,7 @@ app.get('/paused', userAuth.verifyToken, async function(req, res, next){
       })
     })
 })
+
 app.get('/canceled', userAuth.verifyToken, async function(req, res, next){
   const collection = req.app.locals.custCollection;
   const resultArr = []
@@ -210,24 +203,19 @@ app.post('/changeStatus/:custAddress', userAuth.verifyToken, async (req, res) =>
   const collection = req.app.locals.custCollection;
   const addressID = req.params.custAddress.split(' ').join()
   console.log(req.body.status, req.params, req.body.purchaseSku, typeof(req.body.purchaseSku))
-  // const filter = {"address": req.params.custAddress}
   const filter = {"address": req.params.custAddress, "suggestedItems.sku": req.body.purchaseSku}
   const update = {
     $set: {
-      // status: req.body.status,
-      // "suggestedItems.$[item].status": req.body.status,
       "suggestedItems.$.status": req.body.status
     }
   }
-  // const options = {arrayFilters: [{"item.sku": req.body.purchaseSku}], 'multi':true}
   const options = {upsert: true}
-
-    const cursor = await collection.findOneAndUpdate(filter, update, options)
-    if(req.body.status == 'new'){
-      res.redirect(`/#${addressID}`)
-    } else {
-      res.redirect(`/${req.body.status}#${addressID}`)
-    }
+  const cursor = await collection.findOneAndUpdate(filter, update, options)
+  if(req.body.status == 'new'){
+    res.redirect(`/#${addressID}`)
+  } else {
+    res.redirect(`/${req.body.status}#${addressID}`)
+  }
 })
 
 app.post('/addNote/:custAddress', userAuth.verifyToken, async (req, res) => { // adds notes to customers
@@ -265,7 +253,8 @@ app.post('/addLead/:custAddress', userAuth.verifyToken, async(req, res)=>{
   
   collection.findOneAndUpdate({ address: req.params.custAddress }, { $set: { addedToClose: true } }, { returnNewDocument: true })
   .then(updatedDocument => {
-    closeUtils.createLead(updatedDocument.value)
+    const lead = closeUtils.createLead(updatedDocument.value)
+    console.log('LEADD', lead)
   })
   if(req.body.pagePath == 'new'){
     res.redirect(`/#${addressID}`)
