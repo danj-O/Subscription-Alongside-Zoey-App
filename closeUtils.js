@@ -9,7 +9,7 @@ function createLead(c){
     .then(function(search_results){
       console.log(search_results.total_results);
       if(search_results.total_results <= 0){  //if there are no leads attached to this email
-        console.log('Creating a new lead')
+        console.log(`Creating a new lead for ${c.email}`)
         closeio.lead.create({  //create the lead
           "name": c.name,
           "contacts": [
@@ -54,16 +54,11 @@ function createLead(c){
           return closeio.lead.read(lead.id);
         })
       } else { //there are existing leads for this customer  -- add opportunities to the first one available...
-        console.log('adding opportunities to already exisisting lead')
-        // console.log('RESULT', getMostRecentLead(search_results.data))
         const lead = getMostRecentLead(search_results.data)
         leadReturn = lead.id
-
-        // closeio.lead.update(lead.id, {"custom.lcf_ab4eOxIiqYD2hi2xbGTuIp9sNx3iht3uzuKmBUfDKBo": null})
         closeio.lead.update(lead.id, {"custom.lcf_ab4eOxIiqYD2hi2xbGTuIp9sNx3iht3uzuKmBUfDKBo": c.notes})
-
         c.suggestedItems.map(item => {
-          console.log(`creating a new opportunity ${item}`)
+          console.log(`creating a new opportunity for LEAD ID: ${lead.id}, ${c.email}: ${item.productName}`)
           const val = parseInt(Math.max(item.revenuePerMonth))
           closeio.opportunity.create({
             "lead_name": item.productName,
