@@ -45,7 +45,7 @@ function createLead(c){
             closeio.opportunity.create({
               "lead_name": item.productName,
               "note": `Product Name: ${item.productName} --- Times Purchased: ${item.timesPurchased} --- Interval: ${item.suggest} weeks --- Notes: ${item.notes || 'none'} --- SKU: ${item.sku} --------- Purchase Instances: ${JSON.stringify(item.purchaseInstances)}`,
-              // "confidence": 90,
+              // "confidence": getConfidence(item.timesPurchased, item.suggest),
               "lead_id": lead.id,
               "value": val * 100,
               "value_period": "monthly"
@@ -74,6 +74,10 @@ function createLead(c){
     })
   console.log(leadReturn)
   return leadReturn
+}
+
+function getConfidence(){
+
 }
 
 function getMostRecentLead(data){
