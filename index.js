@@ -190,7 +190,7 @@ app.post('/login', (req, res) => {
   }
   if (req.body.password === process.env.APP_PASSWORD){
     var token = jwt.sign({pw : pw}, "secretkey", {expiresIn: '30s'} )
-    res.cookie('JWT', token, {maxAge: 300000})
+    res.cookie('JWT', token, {maxAge: 3000000})
     res.redirect('/')
   } else {
     console.log("PASSWORD IS INCORRECT")
