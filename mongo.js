@@ -2,7 +2,7 @@ const utils = require('./utils')
 const Oauth1Helper = require('./auth')
 const axios = require('axios')
 
-const baseUrl = 'https://2ieb7j62xark0rjf.mojostratus.io'
+const baseUrl = 'https://ziptie.com'
 
 async function sendCronUpdateToMongo(queryLength, collection){
   let date = new Date();
@@ -56,7 +56,7 @@ async function appendSubscriptionsToCustomers(m2Data, collection){
     const singleCustData = await getSubDataWithAuth(`${baseUrl}/rest/V1/orders?searchCriteria[filter_groups][2][filters][0][field]=increment_id&searchCriteria[filter_groups][2][filters][0][value]=${sub.orderId}&searchCriteria[filter_groups][2][filters][0][condition_type]=eq`)
     //ADD if the adress doesnt exist, move to next doc
     try{
-      if(singleCustData.data.items[0].extension_attributes.shipping_assignments[0].shipping.address.street[0]){
+      if(singleCustData.data.items.length > 0 && singleCustData.data.items[0].extension_attributes.shipping_assignments[0].shipping.address.street[0]){
         sub.address = singleCustData.data.items[0].extension_attributes.shipping_assignments[0].shipping.address.street[0]
         sub.addressOthers = singleCustData.data.items[0].extension_attributes.shipping_assignments[0].shipping.address
       } else {
@@ -64,7 +64,7 @@ async function appendSubscriptionsToCustomers(m2Data, collection){
         sub.addressOthers = ''
       }
     } catch(err){
-      console.log(err)
+      console.log("ERR: ", err, singleCustData.data)
     }
     const dbCust = await collection.findOne({address: sub.address})  //finding the corresponding customer in mongo now that we have an address
     let update = {}

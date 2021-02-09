@@ -3,6 +3,15 @@ require('dotenv').config();
 
 var closeio = new Closeio(process.env.CLOSE_API_KEY);
 
+function testLead(c){
+  closeio.lead.search({email_address: c.email})
+  .then(search_results => {
+    search_results.data.map(singleLead => {
+      console.log("SEARCH RESULTS", singleLead)
+    })
+  })
+}
+
 function createLead(c){
   let leadReturn;
   closeio.lead.search({email_address: c.email})
@@ -44,7 +53,7 @@ function createLead(c){
             // console.log(val)
             closeio.opportunity.create({
               "lead_name": item.productName,
-              "note": `Product Name: ${item.productName} --- Times Purchased: ${item.timesPurchased} --- Interval: ${item.suggest} weeks --- Notes: ${item.notes || 'none'} --- SKU: ${item.sku} --------- Purchase Instances: ${JSON.stringify(item.purchaseInstances)}`,
+              "note": `Product Name: ${item.productName} \n Times Purchased: ${item.timesPurchased} \n Interval: ${item.suggest} weeks \n Notes: ${item.notes || 'none'} \n SKU: ${item.sku} \n Purchase Instances: ${JSON.stringify(item.purchaseInstances)}`,
               // "confidence": getConfidence(item.timesPurchased, item.suggest),
               "lead_id": lead.id,
               "value": val * 100,
@@ -62,7 +71,7 @@ function createLead(c){
           const val = parseInt(Math.max(item.revenuePerMonth))
           closeio.opportunity.create({
             "lead_name": item.productName,
-            "note": `Product Name: ${item.productName} --- Times Purchased: ${item.timesPurchased} --- Interval: ${item.suggest} weeks --- Notes: ${item.notes || 'none'} --- SKU: ${item.sku} --------- Purchase Instances: ${JSON.stringify(item.purchaseInstances)}`,
+            "note": `Product Name: ${item.productName} \n Times Purchased: ${item.timesPurchased} \n Interval: ${item.suggest} weeks \n Notes: ${item.notes || 'none'} \n SKU: ${item.sku} \n Purchase Instances: ${JSON.stringify(item.purchaseInstances)}`,
             // "confidence": 90,
             "lead_id": lead.id,
             "value": val * 100,
@@ -76,8 +85,8 @@ function createLead(c){
   return leadReturn
 }
 
-function getConfidence(){
-
+function getConfidence(timesPurchased, suggestion){
+  console.log(timesPurchased, suggestion)
 }
 
 function getMostRecentLead(data){
@@ -90,14 +99,15 @@ function getMostRecentLead(data){
 function queryLeads(dbData){
   // closeio.lead.search({email_address: dbData.email})
   //   .then(function(search_results){
-  //     // console.log(search_results.data)
-  //     dbData.lead_URL = 'search_results.data'
-  //     // dbData.lead_URL = search_results.data
+  //     console.log('DATAAA', search_results.data)
+  //     // dbData.lead_URL = 'search_results.data'
+  //     dbData.lead_URL = search_results.data
   //   })
-  console.log(dbData)
+  // console.log('SING DOC DATA with URL of lead', dbData)
 }
 
 module.exports = {
   createLead: createLead,
-  queryLeads: queryLeads
+  queryLeads: queryLeads,
+  testLead: testLead
 }

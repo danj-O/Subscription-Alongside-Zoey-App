@@ -29,7 +29,7 @@ MongoClient.connect(url)
 })
 
 const getDataFrom = 6 //months ago
-const baseUrl = 'https://2ieb7j62xark0rjf.mojostratus.io'
+const baseUrl = 'https://ziptie.com'
 let currentDate
 let custCollection
 let subsCollection

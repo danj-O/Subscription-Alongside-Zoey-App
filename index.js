@@ -54,8 +54,8 @@ app.get('/', userAuth.verifyToken, async function(req, res, next){
       "suggestedItems.status": 'new'
     })
     await cursor.forEach((doc, err)=> {
-      resultArr.push(doc)
       // closeUtils.queryLeads(doc)
+      resultArr.push(doc)
     }, function(){
       // const appendedWithCloseLinks = closeUtils.queryLeads(resultArr)
       res.render('tabTemplate.ejs', { 
@@ -253,8 +253,9 @@ app.post('/addLead/:custAddress', userAuth.verifyToken, async(req, res)=>{
   
   collection.findOneAndUpdate({ address: req.params.custAddress }, { $set: { addedToClose: true } }, { returnNewDocument: true })
   .then(updatedDocument => {
-    const lead = closeUtils.createLead(updatedDocument.value)
-    console.log('LEADD', lead)
+    closeUtils.testLead(updatedDocument.value)
+    // const lead = closeUtils.createLead(updatedDocument.value)
+    // console.log('LEADD', lead)
   })
   if(req.body.pagePath == 'new'){
     res.redirect(`/#${addressID}`)
